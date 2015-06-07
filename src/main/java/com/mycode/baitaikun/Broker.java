@@ -15,7 +15,7 @@ public class Broker extends RouteBuilder {
 
     @Autowired
     DefaultListableBeanFactory factory;
-    private final String timerEndpoint = "timer:broker.poll?period=3s&delay=1s";
+    private final String timerEndpoint = "timer:broker.poll?period=2s&delay=1s";
     private final String initEndpoint = "timer:broker.init?repeatCount=1";
     private final Set<ComputableSource> computableSources = new HashSet<>();
 
