@@ -1,0 +1,1 @@
+java -version:1.8 -jar program/Baitaikun-1.0-SNAPSHOT.jar

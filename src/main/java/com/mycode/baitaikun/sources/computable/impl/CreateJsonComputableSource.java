@@ -13,13 +13,15 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.camel.Body;
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CreateJsonComputableSource extends ComputableSource {
-    
+
     @Autowired
     JoinAndFunctionComputableSource joinAndFunctionComputableSource;
     @Autowired
@@ -31,7 +33,7 @@ public class CreateJsonComputableSource extends ComputableSource {
     public String time;
     private final Pattern noDigit = Pattern.compile("[^\\d]");
     private final Pattern digit = Pattern.compile("^(\\d+)(\\d{4})$");
-    
+
     public CreateJsonComputableSource() throws Exception {
         setSourceKind("computable.createJson");
         getSuperiorSourceClasses().add(JoinAndFunctionComputableSource.class);
@@ -39,7 +41,7 @@ public class CreateJsonComputableSource extends ComputableSource {
         setCheckForUpdateTime(-1L);
         buildEndpoint();
     }
-    
+
     @Override
     public void configure() throws Exception {
         super.configure();
@@ -47,12 +49,13 @@ public class CreateJsonComputableSource extends ComputableSource {
                 .bean(this, "compute()")
                 .marshal().json(JsonLibrary.Jackson)
                 .bean(this, "setJson")
-                .bean(this, "updated()");
-        
+                .bean(this, "updated()")
+                .process(new MessageProcessor("[MESSAGE] 準備が完了しました。"));
+
         from(initImplEndpoint)
                 .to("mock:initImpl");
     }
-    
+
     @Override
     public Object compute() {
         List<Map<String, String>> mapList = joinAndFunctionComputableSource.getMapList();
@@ -84,11 +87,11 @@ public class CreateJsonComputableSource extends ComputableSource {
         this.setTime(currentTimeMillis + "");
         return map;
     }
-    
+
     public void setJson(@Body String body) {
         json = body;
     }
-    
+
     public String convertPrice(String price) {
         if (price == null) {
             return null;
@@ -104,13 +107,13 @@ public class CreateJsonComputableSource extends ComputableSource {
             }
         }
     }
-    
+
     class MyComparator implements Comparator<Map<String, String>> {
-        
+
         String[] ruleField;
         Integer[] signField;
         int fieldSize;
-        
+
         public MyComparator(LinkedHashMap<String, Integer> rule) {
             ArrayList<String> keys = new ArrayList<>(rule.keySet());
             fieldSize = keys.size();
@@ -118,7 +121,7 @@ public class CreateJsonComputableSource extends ComputableSource {
             ArrayList<Integer> signs = new ArrayList<>(rule.values());
             signField = signs.toArray(new Integer[fieldSize]);
         }
-        
+
         @Override
         public int compare(Map<String, String> map1, Map<String, String> map2) {
             for (int i = 0; i < fieldSize; i++) {
@@ -130,12 +133,26 @@ public class CreateJsonComputableSource extends ComputableSource {
                 } else if (get2 == null) {
                     return -signField[i];
                 } else if (get1.equals(get2)) {
-                    
+
                 } else {
                     return get1.compareTo(get2) * signField[i];
                 }
             }
             return 0;
+        }
+    }
+
+    private class MessageProcessor implements Processor {
+
+        String message;
+
+        public MessageProcessor(final String message) {
+            this.message = message;
+        }
+
+        @Override
+        public void process(Exchange exchange) throws Exception {
+            System.out.println(message);
         }
     }
 }

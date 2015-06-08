@@ -102,7 +102,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
                             int parseInt = Integer.parseInt(taxOutPrice);
                             map.put("演算.税込価格", (int) (parseInt * (1 + taxRate)) + "");
                         } catch (Throwable t) {
-                            System.out.println("価格を読み取れません: " + map);
+                            System.out.println("価格を読み取れません…アイテムキー: " + map.get("演算.ITEM_KEY") + " 価格: "+ map.get(taxOutField));
                             continue;
                         }
                         break;

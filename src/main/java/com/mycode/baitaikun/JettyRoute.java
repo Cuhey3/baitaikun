@@ -5,13 +5,12 @@ import com.mycode.baitaikun.sources.excel.impl.BaitaikunBrowserSettingExcelSourc
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.Getter;
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
-import org.apache.camel.Header;
 import org.apache.camel.Headers;
 import org.apache.camel.builder.RouteBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +26,8 @@ public class JettyRoute extends RouteBuilder {
     String port;
     String templateFileName;
     String templateHtml;
+    @Getter
+    String completeHtml;
 
     public JettyRoute() throws IOException {
         this.port = Settings.get("媒体くん検索画面のポート番号");
@@ -38,6 +39,7 @@ public class JettyRoute extends RouteBuilder {
         fromF("jetty:http://0.0.0.0:%s/query/", port)
                 .choice().when(header("method").isEqualTo("init")).to("direct:waitJson")
                 .otherwise().bean(this, "getTime");
+        fromF("jetty:http://0.0.0.0:%s/", port).bean(this, "getCompleteHtml()");
         from("direct:waitJson").choice().when().method(this, "jsonIsReady()")
                 .bean(this, "getJson()")
                 .otherwise().delay(3000).to("direct:waitJson");
@@ -82,6 +84,8 @@ public class JettyRoute extends RouteBuilder {
             body = m.replaceFirst(argsSetting[argNum - 1]);
         }
         header.put(Exchange.FILE_NAME, "媒体くん.html");
+        completeHtml = body;
+        System.out.println("[MESSAGE] 媒体くんのURLを登録しました: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
         return body;
     }
 }

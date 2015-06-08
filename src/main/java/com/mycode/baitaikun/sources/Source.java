@@ -40,7 +40,7 @@ public abstract class Source extends RouteBuilder {
     }
 
     public void ready() {
-        System.out.println("[READY] " + this.getClass().getSimpleName());
+        //System.out.println("[READY] " + this.getClass().getSimpleName());
         ready = true;
     }
 
