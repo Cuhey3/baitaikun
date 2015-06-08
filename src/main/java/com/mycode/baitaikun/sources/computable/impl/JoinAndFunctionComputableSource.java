@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JoinAndFunctionComputableSource extends ComputableSource {
-    
+
     @Getter
     List<Map<String, String>> mapList;
     @Autowired
@@ -22,7 +22,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
     BaitaiComputableSource baitai;
     @Autowired
     ItemKeyToMapComputableSource itemKeyToMapComputableSource;
-    
+
     public JoinAndFunctionComputableSource() throws Exception {
         setSourceKind("computable.join");
         getSuperiorSourceClasses().add(BaitaikunSettingsExcelSource.class);
@@ -31,22 +31,23 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
         setCheckForUpdateTime(-1L);
         buildEndpoint();
     }
-    
+
     @Override
     public void configure() throws Exception {
         super.configure();
         from(computeImplEndpoint)
                 .bean(this, "compute()")
                 .bean(this, "updated()");
-        
+
         from(initImplEndpoint)
                 .to("mock:initImpl");
     }
-    
+
     @Override
     public Object compute() {
         TaxInPrice taxInPrice = new TaxInPrice();
         Furikomi furikomi = new Furikomi();
+        Bunkatsu bunkatsu = new Bunkatsu();
         mapList = new ArrayList<>();
         List<Map<String, String>> baitaiMapList = baitai.getMapList();
         Map<String, Map<String, String>> itemKeyToMap = itemKeyToMapComputableSource.getItemKeyToMap();
@@ -55,6 +56,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             String itemKey = map.get("ITEM_KEY");
             map.entrySet().stream().forEach((entry) -> {
                 record.put("媒体一覧." + entry.getKey(), entry.getValue());
+                record.put("演算.ITEM_KEY", itemKey);
             });
             Map<String, String> itemInfo = itemKeyToMap.get(itemKey);
             if (itemInfo != null) {
@@ -67,17 +69,18 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
         mapList.stream().forEach(map -> {
             taxInPrice.setTaxInPrice(map);
             furikomi.setFurikomi(map);
+            bunkatsu.setBunkatsu(map);
         });
         //mapList.stream().forEach(System.out::println);
         return null;
     }
-    
+
     private class TaxInPrice {
-        
+
         final double taxRate;
         final String[] taxOutFields;
         final Pattern noDigit = Pattern.compile("[^\\d]");
-        
+
         public TaxInPrice() {
             Map<String, Map<String, String>> setting = settings.getSettings();
             taxRate = Double.parseDouble(setting.get("共通設定").get("消費税率"));
@@ -87,9 +90,9 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
                 taxOutFields[i] = sheetNames[i] + "." + settings.getSettings().get(sheetNames[i]).get("税抜価格の列名");
             }
         }
-        
+
         public void setTaxInPrice(Map<String, String> map) {
-            
+
             for (String taxOutField : taxOutFields) {
                 String taxOutPrice = map.get(taxOutField);
                 if (taxOutPrice != null) {
@@ -108,17 +111,17 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             }
         }
     }
-    
+
     private class Furikomi {
-        
+
         Map<String, String> fukaItem;
         Map<String, String> fukaBaitai;
-        
+
         public Furikomi() {
             fukaItem = settings.getSettings().get("振込不可商品");
             fukaBaitai = settings.getSettings().get("振込不可媒体");
         }
-        
+
         public void setFurikomi(Map<String, String> map) {
             String itemKey = map.get("媒体一覧.ITEM_KEY");
             String fuka = "";
@@ -132,7 +135,43 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
                     fuka = fukaBaitai.get(baitaiCode);
                 }
             }
+            if (fuka.isEmpty()) {
+                fuka = "可";
+            }
             map.put("演算.振込一括", fuka);
+        }
+    }
+
+    private class Bunkatsu {
+
+        Map<String, String> bunkatsuNum;
+        String bunkatsuField;
+        String priceField;
+        Pattern p = Pattern.compile("^\\d+$");
+
+        public Bunkatsu() {
+            this.bunkatsuNum = settings.getSettings().get("分割回数");
+            this.bunkatsuField = "納期案内." + settings.getSettings().get("納期案内").get("分割回数の列名");
+            this.priceField = "納期案内." + settings.getSettings().get("納期案内").get("税抜価格の列名");
+        }
+
+        public void setBunkatsu(Map<String, String> map) {
+            String itemKey = map.get("媒体一覧.ITEM_KEY");
+            String bunkatsu = map.get(bunkatsuField);
+            String kakaku = map.get(priceField);
+            if (bunkatsu != null && p.matcher(bunkatsu).find()) {
+                map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
+            } else if (bunkatsuNum.containsKey(itemKey)) {
+                map.put("演算.分割回数", "最大 " + bunkatsuNum.get(itemKey) + " 回可");
+            } else if (kakaku != null && p.matcher(kakaku).find()) {
+                if (Integer.parseInt(kakaku) > 30000) {
+                    map.put("演算.分割回数", "分割要確認");
+                } else {
+                    map.put("演算.分割回数", "分割不可");
+                }
+            } else {
+                map.put("演算.分割回数", "分割回数要確認");
+            }
         }
     }
 }

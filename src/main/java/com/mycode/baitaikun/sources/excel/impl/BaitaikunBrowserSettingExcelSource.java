@@ -24,7 +24,13 @@ import org.springframework.stereotype.Component;
 public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
 
     @Getter
-    Map<String, ArrayList<String>> browserSetting = new LinkedHashMap<>();
+    LinkedHashMap<String, String> needFields;
+    @Getter
+    ArrayList<Map<String, String>> listFields;
+    @Getter
+    ArrayList<Map<String, String>> detailFields;
+    @Getter
+    ArrayList<String> priceFields;
     @Getter
     LinkedHashMap<String, Integer> sortSetting = new LinkedHashMap<>();
     @Autowired
@@ -40,42 +46,56 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
 
     @Override
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
+//        String[] signs = new String[]{"_01", "_02", "_03", "_04", "_05", "_06", "_07", "_08", "_09", "_10", "_11", "_12", "_13", "_14", "_15", "_16", "_17", "_18", "_19", "_20", "_21", "_22", "_23", "_24", "_25", "_26", "_27", "_28", "_29", "_30", "_31", "_32", "_33", "_34", "_35", "_36", "_37", "_38", "_39", "_40", "_41", "_42", "_43", "_44", "_45", "_46", "_47", "_48", "_49", "_50", "_51", "_52", "_53", "_54", "_55", "_56", "_57", "_58", "_59", "_60", "_61", "_62", "_63", "_64", "_65", "_66", "_67", "_68", "_69", "_70", "_71", "_72", "_73", "_74", "_75", "_76", "_77", "_78", "_79", "_80", "_81", "_82", "_83", "_84", "_85", "_86", "_87", "_88", "_89", "_90", "_91", "_92", "_93", "_94", "_95", "_96", "_97", "_98", "_99"};
+
+        char[] chars = "abcdefghijklmnopqrstuvwuxyz".toCharArray();
         Sheet sheet = workbook.getSheet("検索画面表示設定");
         FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
         DataFormatter formatter = new DataFormatter();
         Iterator<Row> rowIterator = sheet.rowIterator();
         rowIterator.next();
-        ArrayList<String> needFields = new ArrayList<>();
-        ArrayList<String> listFields = new ArrayList<>();
-        ArrayList<String> detailFields = new ArrayList<>();
+        needFields = new LinkedHashMap<>();
+        listFields = new ArrayList<>();
+        detailFields = new ArrayList<>();
+        priceFields = new ArrayList<>();
         TreeMap<Integer, String> sortFields = new TreeMap<>();
         TreeMap<Integer, Integer> sortRule = new TreeMap<>();
         while (rowIterator.hasNext()) {
             String[] values = rowToStringArray(rowIterator.next(), formatter, evaluator);
-            if (values.length > 4 && utility.isNotEmpty(values)) {
-                needFields.add(values[1] + "." + values[2]);
-                switch (values[4]) {
+            if (values.length > 5 && utility.isNotEmpty(values)) {
+                String fieldName = values[1] + "." + values[2];
+                String sign = needFields.get(fieldName);
+                if (sign == null) {
+                    sign = chars[needFields.size()] + "";
+                    needFields.put(fieldName, sign);
+                }
+
+                Map<String, String> m = new LinkedHashMap<>();
+                m.put("sign", sign);
+                m.put("exp", values[3]);
+                switch (values[5]) {
                     case "一覧":
-                        listFields.add(values[3]);
+                        listFields.add(m);
                         break;
                     case "詳細":
-                        detailFields.add(values[3]);
+                        detailFields.add(m);
                         break;
                 }
-                if (values.length > 6 && values[5] != null && values[6] != null) {
-                    System.out.println(Arrays.toString(values));
-                    System.out.println(values[5] + "\t" + values[6]);
-                    if (values[5].matches("^\\d+$")) {
-                        sortFields.put(Integer.parseInt(values[5]), values[1] + "." + values[2]);
-                        switch (values[6]) {
+                if (values[4].equals("金額")) {
+                    priceFields.add(fieldName);
+                }
+                if (values.length > 7 && values[6] != null && values[7] != null) {
+                    if (values[6].matches("^\\d+$")) {
+                        sortFields.put(Integer.parseInt(values[6]), fieldName);
+                        switch (values[7]) {
                             case "昇順":
-                                sortRule.put(Integer.parseInt(values[5]), 1);
+                                sortRule.put(Integer.parseInt(values[6]), 1);
                                 break;
                             case "降順":
-                                sortRule.put(Integer.parseInt(values[5]), -1);
+                                sortRule.put(Integer.parseInt(values[6]), -1);
                                 break;
                             default:
-                                sortRule.put(Integer.parseInt(values[5]), 0);
+                                sortRule.put(Integer.parseInt(values[6]), 0);
                         }
                     }
                 }
@@ -92,17 +112,10 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
             }
         }
         argsSetting = args.toArray(new String[args.size()]);
-        System.out.println(sortFields);
-        System.out.println(sortRule);
         sortFields.entrySet().stream().filter((entry) -> (sortRule.get(entry.getKey()) != 0)).forEach((entry) -> {
             sortSetting.put(entry.getValue(), sortRule.get(entry.getKey()));
         });
-        System.out.println(sortSetting);
-        browserSetting.put("必要列名", needFields);
-        browserSetting.put("一覧列名", listFields);
-        browserSetting.put("詳細列名", detailFields);
-        System.out.println(browserSetting);
-        int hashCode = browserSetting.hashCode();
+        int hashCode = sheet.rowIterator().hashCode();
         if (oldHash != hashCode) {
             header.put("change", true);
             oldHash = hashCode;

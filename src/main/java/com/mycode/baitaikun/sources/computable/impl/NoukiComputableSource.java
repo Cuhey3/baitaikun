@@ -9,6 +9,8 @@ import com.mycode.baitaikun.sources.excel.impl.RecordAppenderExcelSource;
 import java.text.Normalizer;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,7 @@ public class NoukiComputableSource extends ComputableSource {
     RecordAppenderExcelSource appender;
     @Autowired
     ItemKeyReplaceExcelSource replacer;
+    private final Pattern datePattern = Pattern.compile("(\\d{1,2})/(\\d{1,2})/([12]\\d)");
 
     public NoukiComputableSource() throws Exception {
         setSourceKind("computable.nouki");
@@ -65,8 +68,10 @@ public class NoukiComputableSource extends ComputableSource {
         appender.appendAll(settingName, mapList);
         replacer.createItemKey(settingName, mapList);
         String noukiField = baitaikun.getSettings().get("納期案内").get("納期の列名");
+        String dateField = baitaikun.getSettings().get("納期案内").get("日付の列名");
         mapList.stream().forEach(map -> {
             noukiClean(noukiField, map);
+            formatDate(map, dateField);
         });
 
         return null;
@@ -76,6 +81,24 @@ public class NoukiComputableSource extends ComputableSource {
         String noukiExpression = map.get(noukiField);
         if (noukiExpression != null) {
             map.put(noukiField, Normalizer.normalize(noukiExpression, Normalizer.Form.NFKC).replaceAll("納期 ?(?=\\d)", ""));
+        }
+    }
+
+    public void formatDate(Map<String, String> map, String dateField) {
+        String date = map.get(dateField);
+        if (date != null) {
+            Matcher m = datePattern.matcher(date);
+            if (m.find()) {
+                String month = m.group(1);
+                if (month.length() == 1) {
+                    month = "0" + month;
+                }
+                String day = m.group(2);
+                if (day.length() == 1) {
+                    day = "0" + day;
+                }
+                map.put(dateField, "20" + m.group(3) + "/" + month + "/" + day);
+            }
         }
     }
 }

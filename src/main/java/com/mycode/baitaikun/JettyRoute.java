@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
+import org.apache.camel.Header;
 import org.apache.camel.Headers;
 import org.apache.camel.builder.RouteBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,9 @@ public class JettyRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        fromF("jetty:http://0.0.0.0:%s/init/", port).to("direct:waitJson");
+        fromF("jetty:http://0.0.0.0:%s/query/", port)
+                .choice().when(header("method").isEqualTo("init")).to("direct:waitJson")
+                .otherwise().bean(this, "getTime");
         from("direct:waitJson").choice().when().method(this, "jsonIsReady()")
                 .bean(this, "getJson()")
                 .otherwise().delay(3000).to("direct:waitJson");
@@ -50,6 +53,10 @@ public class JettyRoute extends RouteBuilder {
 
     public boolean jsonIsReady() {
         return !createJsonComputableSource.getJson().equals("{}");
+    }
+
+    public String getTime() {
+        return String.format("JSON_CALLBACK({method:\"timer\",time:%s});", createJsonComputableSource.getTime());
     }
 
     public boolean settingIsReady() {
@@ -68,7 +75,7 @@ public class JettyRoute extends RouteBuilder {
                     break;
             }
         }
-        Pattern p = Pattern.compile("(<<引数)(\\d+)(>>)");
+        Pattern p = Pattern.compile("(<< ?引数)(\\d+)( ?>>)");
         Matcher m;
         while ((m = p.matcher(body)).find()) {
             int argNum = Integer.parseInt(m.group(2));
