@@ -45,7 +45,7 @@ public class JettyRoute extends RouteBuilder {
                 .otherwise().delay(3000).to("direct:waitJson");
         fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName).to("direct:waitSetting");
         from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
-                .bean(this, "createHtml").to("file:./")
+                .bean(this, "createHtml").toF("file:%s/../",Settings.get("媒体くん用フォルダの場所"))
                 .otherwise().delay(3000).to("direct:waitSetting");
     }
 
@@ -83,7 +83,7 @@ public class JettyRoute extends RouteBuilder {
             int argNum = Integer.parseInt(m.group(2));
             body = m.replaceFirst(argsSetting[argNum - 1]);
         }
-        header.put(Exchange.FILE_NAME, "媒体くん.html");
+        header.put(Exchange.FILE_NAME, "媒体くんX.html");
         completeHtml = body;
         System.out.println("[MESSAGE] 媒体くんのURLを登録しました: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
         return body;

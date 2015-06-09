@@ -52,7 +52,7 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
                     if (replace == null) {
                         replace = new HashSet<>();
                     }
-                    if (values.length == 3 && values[2].length() > 0) {
+                    if (values.length >= 3 && values[2].length() > 0) {
                         replace.add(values[1] + "#" + values[2]);
                     } else {
                         replace.add(values[1]);
