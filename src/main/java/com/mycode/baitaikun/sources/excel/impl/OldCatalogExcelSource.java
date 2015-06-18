@@ -9,7 +9,8 @@ public class OldCatalogExcelSource extends ExcelSource {
 
     public OldCatalogExcelSource() throws Exception {
         setSourceKind("excel.oldcatalog");
-        setSourceNamePattern(Settings.get("カタログ（旧）のファイル名"));
+        setSourceName("カタログ（旧）のファイル名");
+        setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
 }

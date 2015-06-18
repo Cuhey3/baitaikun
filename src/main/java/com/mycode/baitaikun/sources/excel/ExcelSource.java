@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,24 +25,26 @@ public abstract class ExcelSource extends Source {
 
     @Setter
     String sourceNamePattern;
+    @Setter
+    @Getter
+    String sourceName;
     @Getter
     public final List<String[]> stringArrayList = new ArrayList<>();
-    public String fileEndpoint;
+    public String startEndpoint;
     public int oldHash = -1;
 
     @Override
     public void buildEndpoint() throws Exception {
-        fileEndpoint = String.format("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), sourceNamePattern);
+        startEndpoint = "direct:" + sourceKind;
     }
 
     @Override
     public void configure() {
         onException(java.io.FileNotFoundException.class).handled(true);
-        from(fileEndpoint)
+        from(startEndpoint)
                 .bean(this, "openWorkbook")
                 .filter().simple("${body} is 'org.apache.poi.ss.usermodel.Workbook'")
                 .bean(this, "loadSheet")
-                .filter().simple("property.CamelBatchComplete")
                 .choice().when().simple("${header.change}")
                 .bean(this, "updated");
     }

@@ -29,7 +29,8 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
 
     public ItemKeyReplaceExcelSource() throws Exception {
         setSourceKind("excel.itemKeyReplace");
-        setSourceNamePattern(Settings.get("アイテムキー置換リストのファイル名"));
+        setSourceName("アイテムキー置換リストのファイル名");
+        setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
 

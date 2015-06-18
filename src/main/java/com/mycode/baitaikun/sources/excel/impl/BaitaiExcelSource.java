@@ -9,7 +9,8 @@ public class BaitaiExcelSource extends ExcelSource {
 
     public BaitaiExcelSource() throws Exception {
         setSourceKind("excel.baitai");
-        setSourceNamePattern(Settings.get("媒体カレンダーのファイル名"));
+        setSourceName("媒体カレンダーのファイル名");
+        setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
 }

@@ -26,7 +26,8 @@ public class RecordAppenderExcelSource extends ExcelSource {
 
     public RecordAppenderExcelSource() throws IOException, Exception {
         setSourceKind("excel.recordAppender");
-        setSourceNamePattern(Settings.get("レコード追加リストのファイル名"));
+        setSourceName("レコード追加リストのファイル名");
+        setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
 

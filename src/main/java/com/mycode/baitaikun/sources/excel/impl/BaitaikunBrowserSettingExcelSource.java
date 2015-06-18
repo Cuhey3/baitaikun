@@ -4,7 +4,6 @@ import com.mycode.baitaikun.Settings;
 import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.excel.ExcelSource;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,7 +39,8 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
 
     public BaitaikunBrowserSettingExcelSource() throws Exception {
         setSourceKind("excel.browserSetting");
-        setSourceNamePattern(Settings.get("検索画面表示設定のファイル名"));
+        setSourceName("検索画面表示設定のファイル名");
+        setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
 

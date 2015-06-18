@@ -9,7 +9,8 @@ public class NoukiExcelSource extends ExcelSource {
 
     public NoukiExcelSource() throws Exception {
         setSourceKind("excel.nouki");
-        setSourceNamePattern(Settings.get("納期案内一覧のファイル名"));
+        setSourceName("納期案内一覧のファイル名");
+        setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
 }
