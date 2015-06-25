@@ -164,7 +164,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             } else if (bunkatsuNum.containsKey(itemKey) && !bunkatsuNum.get(itemKey).equals("0") && !bunkatsuNum.get(itemKey).equals("-")) {
                 map.put("演算.分割回数", "最大 " + bunkatsuNum.get(itemKey) + " 回可");
             } else if (kakaku != null && p.matcher(kakaku).find()) {
-                if (Integer.parseInt(kakaku) < 30000) {
+                if (Integer.parseInt(kakaku) > 30000) {
                     map.put("演算.分割回数", "分割回数要確認");
                 } else {
                     map.put("演算.分割回数", "分割不可");
