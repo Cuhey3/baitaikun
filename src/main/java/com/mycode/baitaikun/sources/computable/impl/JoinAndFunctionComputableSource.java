@@ -102,7 +102,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
                             int parseInt = Integer.parseInt(taxOutPrice);
                             map.put("演算.税込価格", (int) (parseInt * (1 + taxRate)) + "");
                         } catch (Throwable t) {
-                            System.out.println("価格を読み取れません…アイテムキー: " + map.get("演算.ITEM_KEY") + " 価格: "+ map.get(taxOutField));
+                            System.out.println("価格を読み取れません…アイテムキー: " + map.get("演算.ITEM_KEY") + " 価格: " + map.get(taxOutField));
                             continue;
                         }
                         break;
@@ -161,7 +161,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             String kakaku = map.get(priceField);
             if (bunkatsu != null && p.matcher(bunkatsu).find() && !bunkatsu.equals("0")) {
                 map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
-            } else if (bunkatsuNum.containsKey(itemKey)) {
+            } else if (bunkatsuNum.containsKey(itemKey) && !bunkatsuNum.get(itemKey).equals("0") && !bunkatsuNum.get(itemKey).equals("-")) {
                 map.put("演算.分割回数", "最大 " + bunkatsuNum.get(itemKey) + " 回可");
             } else if (kakaku != null && p.matcher(kakaku).find()) {
                 if (Integer.parseInt(kakaku) < 30000) {
