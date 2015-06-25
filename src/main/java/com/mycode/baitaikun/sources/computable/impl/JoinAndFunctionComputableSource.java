@@ -2,6 +2,7 @@ package com.mycode.baitaikun.sources.computable.impl;
 
 import com.mycode.baitaikun.sources.computable.ComputableSource;
 import com.mycode.baitaikun.sources.excel.impl.BaitaikunSettingsExcelSource;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -156,14 +157,20 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
         }
 
         public void setBunkatsu(Map<String, String> map) {
+
             String itemKey = map.get("媒体一覧.ITEM_KEY");
             String bunkatsu = map.get(bunkatsuField);
+            bunkatsu = bunkatsu == null ? "" : Normalizer.normalize(bunkatsu, Normalizer.Form.NFKC).replaceAll("[^\\d]", "");
+            String bunkatsu2 = bunkatsuNum.get(itemKey);
+            bunkatsu2 = bunkatsu2 == null ? "" : Normalizer.normalize(bunkatsu2, Normalizer.Form.NFKC).replaceAll("[^\\d]", "");
             String kakaku = map.get(priceField);
-            if (bunkatsu != null && p.matcher(bunkatsu).find() && !bunkatsu.equals("0")) {
+            kakaku = kakaku == null ? "" : Normalizer.normalize(kakaku, Normalizer.Form.NFKC).replaceAll("[^\\d]", "");
+
+            if (!bunkatsu.isEmpty() && !bunkatsu.equals("0")) {
                 map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
-            } else if (bunkatsuNum.containsKey(itemKey) && !bunkatsuNum.get(itemKey).equals("0") && !bunkatsuNum.get(itemKey).equals("-")) {
-                map.put("演算.分割回数", "最大 " + bunkatsuNum.get(itemKey) + " 回可");
-            } else if (kakaku != null && p.matcher(kakaku).find()) {
+            } else if (!bunkatsu2.isEmpty() && !bunkatsu2.equals("0")) {
+                map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
+            } else if (!kakaku.isEmpty()) {
                 if (Integer.parseInt(kakaku) > 30000) {
                     map.put("演算.分割回数", "分割回数要確認");
                 } else {

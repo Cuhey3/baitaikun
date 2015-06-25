@@ -46,6 +46,7 @@ public class JettyRoute extends RouteBuilder {
         fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName).to("direct:waitSetting");
         from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
                 .bean(this, "createHtml").toF("file:%s/../",Settings.get("媒体くん用フォルダの場所"))
+                //.bean(this, "createHtml").to("file:./")
                 .otherwise().delay(3000).to("direct:waitSetting");
     }
 
