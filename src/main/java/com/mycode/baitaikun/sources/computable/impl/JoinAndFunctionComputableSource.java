@@ -159,13 +159,13 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             String itemKey = map.get("媒体一覧.ITEM_KEY");
             String bunkatsu = map.get(bunkatsuField);
             String kakaku = map.get(priceField);
-            if (bunkatsu != null && p.matcher(bunkatsu).find()) {
+            if (bunkatsu != null && p.matcher(bunkatsu).find() && !bunkatsu.equals("0")) {
                 map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
             } else if (bunkatsuNum.containsKey(itemKey)) {
                 map.put("演算.分割回数", "最大 " + bunkatsuNum.get(itemKey) + " 回可");
             } else if (kakaku != null && p.matcher(kakaku).find()) {
-                if (Integer.parseInt(kakaku) > 30000) {
-                    map.put("演算.分割回数", "分割要確認");
+                if (Integer.parseInt(kakaku) < 30000) {
+                    map.put("演算.分割回数", "分割回数要確認");
                 } else {
                     map.put("演算.分割回数", "分割不可");
                 }
