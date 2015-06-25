@@ -170,6 +170,8 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
                 map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
             } else if (!bunkatsu2.isEmpty() && !bunkatsu2.equals("0")) {
                 map.put("演算.分割回数", "最大 " + bunkatsu + " 回可");
+            } else if (bunkatsu.equals("0") || bunkatsu2.equals("0")) {
+                map.put("演算.分割回数", "分割不可");
             } else if (!kakaku.isEmpty()) {
                 if (Integer.parseInt(kakaku) > 30000) {
                     map.put("演算.分割回数", "分割回数要確認");

@@ -84,6 +84,12 @@
             <version>8.1.16.v20140903</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>18.0</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>

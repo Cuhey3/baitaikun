@@ -43,7 +43,7 @@ public class JettyRoute extends RouteBuilder {
         from("direct:waitJson").choice().when().method(this, "jsonIsReady()")
                 .bean(this, "getJson()")
                 .otherwise().delay(3000).to("direct:waitJson");
-        fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName).to("direct:waitSetting");
+        fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName).bean(this, "saveHtml").to("direct:waitSetting");
         from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
                 .bean(this, "createHtml").toF("file:%s/../",Settings.get("媒体くん用フォルダの場所"))
                 //.bean(this, "createHtml").to("file:./")
@@ -66,7 +66,12 @@ public class JettyRoute extends RouteBuilder {
         return baitaikunBrowserSettingExcelSource.isReady();
     }
 
-    public String createHtml(@Body String body, @Headers Map header) throws UnknownHostException {
+    public void saveHtml(@Body String body) {
+        templateHtml = body;
+    }
+
+    public String createHtml(@Headers Map header) throws UnknownHostException {
+        String body = templateHtml;
         String[] argsSetting = baitaikunBrowserSettingExcelSource.getArgsSetting();
         for (int i = 0; i < argsSetting.length; i++) {
             switch (argsSetting[i]) {
@@ -75,6 +80,9 @@ public class JettyRoute extends RouteBuilder {
                     break;
                 case "自動取得:ポート番号":
                     argsSetting[i] = port;
+                    break;
+                case "自動取得:スタイル":
+                    argsSetting[i] = baitaikunBrowserSettingExcelSource.getCss();
                     break;
             }
         }

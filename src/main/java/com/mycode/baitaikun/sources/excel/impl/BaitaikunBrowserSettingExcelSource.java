@@ -1,9 +1,12 @@
 package com.mycode.baitaikun.sources.excel.impl;
 
+import com.google.common.collect.HashBiMap;
 import com.mycode.baitaikun.Settings;
 import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.excel.ExcelSource;
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,6 +34,12 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
     @Getter
     ArrayList<String> priceFields;
     @Getter
+    Map<String, String> keywordToClassName;
+    @Getter
+    HashBiMap<String, String> classNameToCSSStyle;
+    @Getter
+    String css;
+    @Getter
     LinkedHashMap<String, Integer> sortSetting = new LinkedHashMap<>();
     @Autowired
     Utility utility;
@@ -45,6 +54,16 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
     }
 
     @Override
+    public void configure() {
+        onException(java.io.FileNotFoundException.class).handled(true);
+        from(startEndpoint)
+                .bean(this, "openWorkbook")
+                .filter().simple("${body} is 'org.apache.poi.ss.usermodel.Workbook'")
+                .bean(this, "loadSheet")
+                .choice().when().simple("${header.change}")
+                .bean(this, "updated").to("direct:waitSetting");
+    }
+    @Override
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
 //        String[] signs = new String[]{"_01", "_02", "_03", "_04", "_05", "_06", "_07", "_08", "_09", "_10", "_11", "_12", "_13", "_14", "_15", "_16", "_17", "_18", "_19", "_20", "_21", "_22", "_23", "_24", "_25", "_26", "_27", "_28", "_29", "_30", "_31", "_32", "_33", "_34", "_35", "_36", "_37", "_38", "_39", "_40", "_41", "_42", "_43", "_44", "_45", "_46", "_47", "_48", "_49", "_50", "_51", "_52", "_53", "_54", "_55", "_56", "_57", "_58", "_59", "_60", "_61", "_62", "_63", "_64", "_65", "_66", "_67", "_68", "_69", "_70", "_71", "_72", "_73", "_74", "_75", "_76", "_77", "_78", "_79", "_80", "_81", "_82", "_83", "_84", "_85", "_86", "_87", "_88", "_89", "_90", "_91", "_92", "_93", "_94", "_95", "_96", "_97", "_98", "_99"};
 
@@ -58,6 +77,9 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
         listFields = new ArrayList<>();
         detailFields = new ArrayList<>();
         priceFields = new ArrayList<>();
+        keywordToClassName = new LinkedHashMap<>();
+        classNameToCSSStyle = HashBiMap.create();
+        css = "";
         TreeMap<Integer, String> sortFields = new TreeMap<>();
         TreeMap<Integer, Integer> sortRule = new TreeMap<>();
         while (rowIterator.hasNext()) {
@@ -115,7 +137,27 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
         sortFields.entrySet().stream().filter((entry) -> (sortRule.get(entry.getKey()) != 0)).forEach((entry) -> {
             sortSetting.put(entry.getValue(), sortRule.get(entry.getKey()));
         });
-        int hashCode = sheet.rowIterator().hashCode();
+        Sheet sheet2 = workbook.getSheet("強調キーワード");
+        Iterator<Row> rowIterator2 = sheet2.rowIterator();
+        rowIterator2.next();
+
+        StringBuilder sb = new StringBuilder();
+        while (rowIterator2.hasNext()) {
+            String[] values = rowToStringArray(rowIterator2.next(), formatter, evaluator);
+            if (values.length > 1 && utility.isNotEmpty(values)) {
+                String style = Normalizer.normalize(values[1], Normalizer.Form.NFKC);
+                String className = classNameToCSSStyle.inverse().get(style);
+                if (className == null) {
+                    className = "highlight" + classNameToCSSStyle.size();
+                    classNameToCSSStyle.put(className, values[1]);
+                    sb.append(String.format(".%s{%s}", className, style)).append("\r\n");
+                }
+                keywordToClassName.put(values[0], className);
+            }
+        }
+        css = new String(sb);
+        int[] hash = new int[]{sheet.rowIterator().hashCode(), sheet1.rowIterator().hashCode(), sheet2.rowIterator().hashCode()};
+        int hashCode = Arrays.hashCode(hash);
         if (oldHash != hashCode) {
             header.put("change", true);
             oldHash = hashCode;
