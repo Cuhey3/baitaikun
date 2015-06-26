@@ -23,17 +23,17 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ItemKeyReplaceExcelSource extends ExcelSource {
-    
+
     @Getter
     Map<String, Map<String, Set<String>>> replaceSources = new LinkedHashMap<>();
-    
+
     public ItemKeyReplaceExcelSource() throws Exception {
         setSourceKind("excel.itemKeyReplace");
         setSourceName("アイテムキー置換リストのファイル名");
         setSourceNamePattern(Settings.get(getSourceName()));
         buildEndpoint();
     }
-    
+
     @Override
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
         replaceSources.clear();
@@ -46,7 +46,7 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
             rowIterator.next();
             Map<String, Set<String>> replaceSource = new LinkedHashMap<>();
             while (rowIterator.hasNext()) {
-                
+
                 String[] values = rowToStringArray(rowIterator.next(), formatter, evaluator);
                 if (values[0] != null && !values[0].isEmpty() && values[1] != null && !values[1].isEmpty()) {
                     Set<String> replace = replaceSource.get(values[0]);
@@ -69,7 +69,7 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
             oldHash = hashCode;
         }
     }
-    
+
     public Set<String> getReplacedKeys(String sheetName, String itemKey, String itemName) {
         Set<String> replace = replaceSources.get(sheetName).get(itemKey);
         Set<String> replacedKeys = new LinkedHashSet<>();
@@ -86,11 +86,11 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
         });
         return replacedKeys;
     }
-    
+
     public boolean hasReplacedKey(String sheetName, String itemKey) {
         return replaceSources.get(sheetName).containsKey(itemKey);
     }
-    
+
     public void createItemKey(String sheetName, List<Map<String, String>> mapList) {
         Map<String, Map<String, String>> settings = getFactory().getBean(BaitaikunSettingsExcelSource.class).getSettings();
         ItemKeyReplaceExcelSource itemKeyReplacer = getFactory().getBean(ItemKeyReplaceExcelSource.class);
@@ -113,14 +113,15 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
                     if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
                         Set<String> replacedKeys = itemKeyReplacer.getReplacedKeys(sheetName, itemKey, row.get(itemNameField));
                         replacedKeys.stream().filter((s) -> (!s.equals("削除"))).map((s) -> {
-                            row.put("ITEM_KEY", s);
-                            return s;
-                        }).map((_item) -> {
-                            return new LinkedHashMap<>(row);
+                            Map<String, String> newRow = new LinkedHashMap<>();
+                            newRow.putAll(row);
+                            newRow.put("ITEM_KEY", s);
+                            return newRow;
                         }).forEach(newRows::add);
                     } else {
-                        row.put("ITEM_KEY", itemKey);
-                        Map<String, String> newRow = new LinkedHashMap<>(row);
+                        Map<String, String> newRow = new LinkedHashMap<>();
+                        newRow.putAll(row);
+                        newRow.put("ITEM_KEY", itemKey);
                         newRows.add(newRow);
                     }
                 }
@@ -133,28 +134,24 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
                 } else {
                     itemKey = code + "-" + node;
                 }
-                if (itemKey.isEmpty()) {
-                    iterator.remove();
+                if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
+                    Set<String> replacedKeys = itemKeyReplacer.getReplacedKeys(sheetName, itemKey, row.get(itemNameField));
+                    replacedKeys.stream().map((newKey) -> {
+                        Map<String, String> newRow = new LinkedHashMap<>();
+                        newRow.putAll(row);
+                        newRow.put("ITEM_KEY", newKey);
+                        return newRow;
+                    }).forEach(newRows::add);
                 } else {
-                    if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
-                        Set<String> replacedKeys = itemKeyReplacer.getReplacedKeys(sheetName, itemKey, row.get(itemNameField));
-                        replacedKeys.stream().map((s) -> {
-                            row.put("ITEM_KEY", s);
-                            return s;
-                        }).map((_item) -> new LinkedHashMap<>(row)).forEach((newRow) -> {
-                            newRows.add(newRow);
-                        });
-                        iterator.remove();
-                    } else {
-                        row.put("ITEM_KEY", itemKey);
-                        newRows.add(row);
-                    }
+                    row.put("ITEM_KEY", itemKey);
+                    newRows.add(row);
                 }
             }
         }
-        mapList = newRows;
+        mapList.clear();
+        mapList.addAll(newRows);
     }
-    
+
     public Map<String, Map<String, String>> createItemKeyToMap(List<Map<String, String>> mapList) {
         Map<String, Map<String, String>> itemKeyToMap = new LinkedHashMap<>();
         mapList.stream().forEach((map) -> {
