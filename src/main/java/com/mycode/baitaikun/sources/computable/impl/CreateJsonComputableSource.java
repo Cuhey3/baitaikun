@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.camel.Body;
@@ -61,8 +62,7 @@ public class CreateJsonComputableSource extends ComputableSource {
         mapList.sort(new MyComparator(baitaikunBrowserSettingExcelSource.getSortSetting()));
         LinkedHashMap<String, String> needFields = baitaikunBrowserSettingExcelSource.getNeedFields();
         ArrayList<String> priceFields = baitaikunBrowserSettingExcelSource.getPriceFields();
-        List<Map<String, String>> result = new ArrayList<>();
-        mapList.stream().map((record) -> {
+        List<Map<String, String>> collect = mapList.stream().map((record) -> {
             Map<String, String> newRecord = new LinkedHashMap<>();
             needFields.entrySet().stream().forEach((entry) -> {
                 if (priceFields.contains(entry.getKey())) {
@@ -72,20 +72,15 @@ public class CreateJsonComputableSource extends ComputableSource {
                 }
             });
             return newRecord;
-        }).forEach((newRecord) -> {
-            result.add(newRecord);
-        });
-        ArrayList<Map<String, String>> listSetting = baitaikunBrowserSettingExcelSource.getListFields();
-        ArrayList<Map<String, String>> detailSetting = baitaikunBrowserSettingExcelSource.getDetailFields();
-        Map<String, String> keywords = baitaikunBrowserSettingExcelSource.getKeywordToClassName();
+        }).collect(Collectors.toList());
         Map map = new LinkedHashMap();
-        map.put("data", result);
-        map.put("listColumn", listSetting);
-        map.put("detailColumn", detailSetting);
-        map.put("keywords", keywords);
-        long currentTimeMillis = System.currentTimeMillis();
-        map.put("time", currentTimeMillis + "");
-        this.setTime(currentTimeMillis + "");
+        map.put("data", collect);
+        map.put("listColumn", baitaikunBrowserSettingExcelSource.getListFields());
+        map.put("detailColumn", baitaikunBrowserSettingExcelSource.getDetailFields());
+        map.put("keywords", baitaikunBrowserSettingExcelSource.getKeywordToClassName());
+        String currentTime = System.currentTimeMillis() + "";
+        map.put("time", currentTime);
+        this.setTime(currentTime);
         return map;
     }
 
@@ -113,19 +108,19 @@ public class CreateJsonComputableSource extends ComputableSource {
 
         String[] ruleField;
         Integer[] signField;
-        int fieldSize;
+        int ruleSize;
 
         public MyComparator(LinkedHashMap<String, Integer> rule) {
             ArrayList<String> keys = new ArrayList<>(rule.keySet());
-            fieldSize = keys.size();
-            ruleField = keys.toArray(new String[fieldSize]);
+            ruleSize = keys.size();
+            ruleField = keys.toArray(new String[ruleSize]);
             ArrayList<Integer> signs = new ArrayList<>(rule.values());
-            signField = signs.toArray(new Integer[fieldSize]);
+            signField = signs.toArray(new Integer[ruleSize]);
         }
 
         @Override
         public int compare(Map<String, String> map1, Map<String, String> map2) {
-            for (int i = 0; i < fieldSize; i++) {
+            for (int i = 0; i < ruleSize; i++) {
                 String get1 = map1.get(ruleField[i]);
                 String get2 = map2.get(ruleField[i]);
                 if (get1 == null && get2 == null) {

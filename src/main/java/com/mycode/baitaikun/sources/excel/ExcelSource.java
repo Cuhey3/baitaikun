@@ -1,11 +1,10 @@
 package com.mycode.baitaikun.sources.excel;
 
-import com.mycode.baitaikun.Settings;
+import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.Source;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -14,10 +13,6 @@ import org.apache.camel.Body;
 import org.apache.camel.Header;
 import org.apache.camel.Headers;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -45,7 +40,7 @@ public abstract class ExcelSource extends Source {
                 .bean(this, "openWorkbook")
                 .filter().simple("${body} is 'org.apache.poi.ss.usermodel.Workbook'")
                 .bean(this, "loadSheet")
-                .choice().when().simple("${header.change}")
+                .filter().simple("${header.change}")
                 .bean(this, "updated");
     }
 
@@ -64,32 +59,15 @@ public abstract class ExcelSource extends Source {
     }
 
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
-        Iterator<Row> iterator = workbook.getSheetAt(0).rowIterator();
-        FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-        DataFormatter formatter = new DataFormatter();
         stringArrayList.clear();
-        while (iterator.hasNext()) {
-            stringArrayList.add(rowToStringArray(iterator.next(), formatter, evaluator));
-        }
-        int hashCode = stringArrayList.hashCode();
-        if (oldHash != hashCode) {
-            header.put("change", true);
-            oldHash = hashCode;
-        }
+        stringArrayList.addAll(new Utility().sheetToStringArrayList(workbook.getSheetAt(0)));
+        updateHash(header, stringArrayList.hashCode());
     }
 
-    public String[] rowToStringArray(Row row, DataFormatter formatter, FormulaEvaluator evaluator) {
-        short size = row.getLastCellNum();
-        try {
-            String[] array = new String[size];
-            for (int i = 0; i < size; i++) {
-                Cell next = row.getCell(i);
-                String formatCellValue = formatter.formatCellValue(next, evaluator).replaceAll("\r\n|\n|\r", " ");
-                array[i] = formatCellValue;
-            }
-            return array;
-        } catch (Throwable t) {
-            return null;
+    public void updateHash(Map header, int newHash) {
+        if (oldHash != newHash) {
+            header.put("change", true);
+            oldHash = newHash;
         }
     }
 

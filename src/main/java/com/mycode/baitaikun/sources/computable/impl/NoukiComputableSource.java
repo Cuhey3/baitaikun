@@ -7,6 +7,7 @@ import com.mycode.baitaikun.sources.excel.impl.ItemKeyReplaceExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.NoukiExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.RecordAppenderExcelSource;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -20,14 +21,10 @@ import org.springframework.stereotype.Component;
 public class NoukiComputableSource extends ComputableSource {
 
     @Getter
-    List<Map<String, String>> mapList;
-    @Getter
-    public Map<String, Map<String, String>> itemKeyToMap;
+    final List<Map<String, String>> mapList = new ArrayList<>();
     @Getter
     @Setter
     public String settingName;
-    @Autowired
-    Utility utility;
     @Autowired
     BaitaikunSettingsExcelSource baitaikun;
     @Autowired
@@ -62,9 +59,9 @@ public class NoukiComputableSource extends ComputableSource {
 
     @Override
     public Object compute() {
-
         int skip = Integer.parseInt(baitaikun.getSettings().get(settingName).get("読み飛ばす行の数"));
-        mapList = utility.createMapList(nouki.getStringArrayList(), skip);
+        mapList.clear();
+        mapList.addAll(new Utility().createMapList(nouki.getStringArrayList(), skip));
         appender.appendAll(settingName, mapList);
         replacer.createItemKey(settingName, mapList);
         String noukiField = baitaikun.getSettings().get("納期案内").get("納期の列名");
@@ -73,7 +70,6 @@ public class NoukiComputableSource extends ComputableSource {
             noukiClean(noukiField, map);
             formatDate(map, dateField);
         });
-
         return null;
     }
 

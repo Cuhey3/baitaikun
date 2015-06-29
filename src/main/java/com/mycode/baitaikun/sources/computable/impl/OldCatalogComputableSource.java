@@ -6,6 +6,7 @@ import com.mycode.baitaikun.sources.excel.impl.BaitaikunSettingsExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.ItemKeyReplaceExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.OldCatalogExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.RecordAppenderExcelSource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -17,12 +18,10 @@ import org.springframework.stereotype.Component;
 public class OldCatalogComputableSource extends ComputableSource {
 
     @Getter
-    List<Map<String, String>> mapList;
+    final List<Map<String, String>> mapList = new ArrayList<>();
     @Getter
     @Setter
     public String settingName;
-    @Autowired
-    Utility utility;
     @Autowired
     BaitaikunSettingsExcelSource baitaikun;
     @Autowired
@@ -57,7 +56,8 @@ public class OldCatalogComputableSource extends ComputableSource {
     @Override
     public Object compute() {
         int skip = Integer.parseInt(baitaikun.getSettings().get(settingName).get("読み飛ばす行の数"));
-        mapList = utility.createMapList(oldCatalog.getStringArrayList(), skip);
+        mapList.clear();
+        mapList.addAll(new Utility().createMapList(oldCatalog.getStringArrayList(), skip));
         appender.appendAll(settingName, mapList);
         replacer.createItemKey(settingName, mapList);
         return null;

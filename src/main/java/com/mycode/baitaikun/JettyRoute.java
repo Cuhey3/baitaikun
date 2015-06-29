@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
@@ -23,8 +24,8 @@ public class JettyRoute extends RouteBuilder {
     CreateJsonComputableSource createJsonComputableSource;
     @Autowired
     BaitaikunBrowserSettingExcelSource baitaikunBrowserSettingExcelSource;
-    String port;
-    String templateFileName;
+    private final String port;
+    private final String templateFileName;
     String templateHtml;
     @Getter
     String completeHtml;
@@ -38,16 +39,26 @@ public class JettyRoute extends RouteBuilder {
     public void configure() throws Exception {
         fromF("jetty:http://0.0.0.0:%s/query/", port)
                 .choice().when(header("method").isEqualTo("init")).to("direct:waitJson")
-                .otherwise().bean(this, "getTime");
-        fromF("jetty:http://0.0.0.0:%s/", port).bean(this, "getCompleteHtml()");
+                .otherwise().bean(this, "getTime()");
+
+        fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName)
+                .bean(this, "saveHtml").to("direct:waitSetting");
+
+        from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
+                .bean(this, "createHtml").toF("file:%s/../", Settings.get("媒体くん用フォルダの場所"))
+                //.bean(this, "createHtml").to("file:./")
+                .to("direct:broker.poll")
+                .otherwise().delay(3000).to("direct:waitSetting");
+
+        fromF("jetty:http://0.0.0.0:%s/", port)
+                .choice().when().method(this, "settingIsReady()")
+                .bean(this, "getCompleteHtml()")
+                .otherwise().setBody().simple("now loading...");
+
         from("direct:waitJson").choice().when().method(this, "jsonIsReady()")
                 .bean(this, "getJson()")
                 .otherwise().delay(3000).to("direct:waitJson");
-        fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName).bean(this, "saveHtml").to("direct:waitSetting");
-        from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
-                .bean(this, "createHtml").toF("file:%s/../",Settings.get("媒体くん用フォルダの場所"))
-                //.bean(this, "createHtml").to("file:./")
-                .otherwise().delay(3000).to("direct:waitSetting");
+
     }
 
     public String getJson() {
@@ -72,20 +83,24 @@ public class JettyRoute extends RouteBuilder {
 
     public String createHtml(@Headers Map header) throws UnknownHostException {
         String body = templateHtml;
-        String[] argsSetting = baitaikunBrowserSettingExcelSource.getArgsSetting();
-        for (int i = 0; i < argsSetting.length; i++) {
-            switch (argsSetting[i]) {
-                case "自動取得:IPアドレス":
-                    argsSetting[i] = InetAddress.getLocalHost().getHostAddress();
-                    break;
-                case "自動取得:ポート番号":
-                    argsSetting[i] = port;
-                    break;
-                case "自動取得:スタイル":
-                    argsSetting[i] = baitaikunBrowserSettingExcelSource.getCss();
-                    break;
-            }
-        }
+        String[] argsSetting = Stream.of(baitaikunBrowserSettingExcelSource.getArgsSetting())
+                .skip(1)
+                .map(arg -> {
+                    switch (arg) {
+                        case "自動取得:IPアドレス":
+                            try {
+                                return InetAddress.getLocalHost().getHostAddress();
+                            } catch (UnknownHostException ex) {
+                                return "255.255.255.255";
+                            }
+                        case "自動取得:ポート番号":
+                            return port;
+                        case "自動取得:スタイル":
+                            return baitaikunBrowserSettingExcelSource.getCss();
+                        default:
+                            return arg;
+                    }
+                }).toArray(size -> new String[size]);
         Pattern p = Pattern.compile("(<< ?引数)(\\d+)( ?>>)");
         Matcher m;
         while ((m = p.matcher(body)).find()) {
@@ -94,7 +109,7 @@ public class JettyRoute extends RouteBuilder {
         }
         header.put(Exchange.FILE_NAME, "媒体くんX.html");
         completeHtml = body;
-        System.out.println("[MESSAGE] 媒体くんのURLを登録しました: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
+        System.out.println("[MESSAGE] 媒体くんXのページを更新しました URL: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
         return body;
     }
 }

@@ -6,6 +6,7 @@ import com.mycode.baitaikun.sources.excel.impl.BaitaiExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.BaitaikunSettingsExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.ItemKeyReplaceExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.RecordAppenderExcelSource;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
 public class BaitaiComputableSource extends ComputableSource {
 
     @Getter
-    List<Map<String, String>> mapList;
+    final List<Map<String, String>> mapList = new ArrayList<>();
     @Getter
     @Setter
     public String settingName;
@@ -34,9 +35,7 @@ public class BaitaiComputableSource extends ComputableSource {
     ItemKeyReplaceExcelSource itemKeyReplace_e;
     @Autowired
     ItemKeyToMapComputableSource itemKeyToMap_c;
-    @Autowired
-    Utility utility;
-    Pattern datePattern = Pattern.compile("(\\d{4}/)(\\d{1,2}/)(\\d{1,2})");
+    private final Pattern datePattern = Pattern.compile("(\\d{4}/)(\\d{1,2}/)(\\d{1,2})");
 
     public BaitaiComputableSource() throws Exception {
         setSourceKind("computable.baitai");
@@ -63,11 +62,11 @@ public class BaitaiComputableSource extends ComputableSource {
 
     @Override
     public Object compute() {
-        int skip = Integer.parseInt(settings_e.getSettings().get(settingName).get("読み飛ばす行の数"));
-        mapList = utility.createMapList(baitai_e.getStringArrayList(), skip);
-        String dateField = settings_e.getSettings().get(settingName).get("日付の列名");
-        String errorValue = settings_e.getSettings().get(settingName).get("日付エラーに不可する値");
-        formatDate(mapList, dateField,errorValue);
+        Map<String, Map<String, String>> settings = settings_e.getSettings();
+        int skip = Integer.parseInt(settings.get(settingName).get("読み飛ばす行の数"));
+        mapList.clear();
+        mapList.addAll(new Utility().createMapList(baitai_e.getStringArrayList(), skip));
+        formatDate(mapList, settings.get(settingName).get("日付の列名"), settings.get(settingName).get("日付エラーに付加する値"));
         createRecordFromCatalog("カタログ（最新）");
         createRecordFromCatalog("カタログ（旧）");
         appender_e.appendAll(settingName, mapList);
@@ -76,12 +75,10 @@ public class BaitaiComputableSource extends ComputableSource {
     }
 
     public void createRecordFromCatalog(String catalogName) {
-        Map<String, Map<String, String>> itemKeyToMap = itemKeyToMap_c.getItemKeyToMap();
-        Map<String, String> baitaiSettings = settings_e.getSettings().get(settingName);
         Map<String, String> catalogSettings = settings_e.getSettings().get(catalogName);
         Map<String, String> referFields = new LinkedHashMap<>();
         Map<String, String> fillFields = new LinkedHashMap<>();
-        baitaiSettings.entrySet().stream().forEach((entry) -> {
+        settings_e.getSettings().get(settingName).entrySet().stream().forEach((entry) -> {
             String key = entry.getKey();
             String value = entry.getValue();
             if (key.startsWith("カタログの値を参照する列名")) {
@@ -90,26 +87,21 @@ public class BaitaiComputableSource extends ComputableSource {
                 fillFields.put(value, catalogSettings.get(value));
             }
         });
-        itemKeyToMap.values().stream()
+        itemKeyToMap_c.getItemKeyToMap().values().stream()
                 .filter(map -> map.containsKey(catalogName + ".ITEM_KEY"))
                 .map(map -> {
                     Map<String, String> record = new LinkedHashMap<>();
                     referFields.entrySet().stream().forEach((entry) -> {
                         record.put(entry.getKey(), map.get(catalogName + "." + entry.getValue()));
                     });
-                    return record;
-
-                }).map(record -> {
                     fillFields.entrySet().stream().forEach((entry) -> {
                         record.put(entry.getKey(), entry.getValue());
                     });
                     return record;
-                }).forEach(record -> {
-                    mapList.add(record);
-                });
+                }).forEach(mapList::add);
     }
 
-    public void formatDate(List<Map<String, String>> mapList, String dateField,String errorValue) {
+    public void formatDate(List<Map<String, String>> mapList, String dateField, String errorValue) {
         mapList.stream().forEach((map) -> {
             String date = map.get(dateField);
             if (date == null) {

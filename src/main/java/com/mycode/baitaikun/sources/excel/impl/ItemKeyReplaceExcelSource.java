@@ -1,22 +1,20 @@
 package com.mycode.baitaikun.sources.excel.impl;
 
 import com.mycode.baitaikun.Settings;
+import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.excel.ExcelSource;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.camel.Body;
 import org.apache.camel.Headers;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.stereotype.Component;
@@ -36,38 +34,28 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
 
     @Override
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
+        Utility utility = new Utility();
         replaceSources.clear();
-        String[] sheetNames = new String[]{"納期案内", "媒体一覧", "カタログ（最新）", "カタログ（旧）"};
-        for (String s : sheetNames) {
-            Sheet sheet = workbook.getSheet(s);
-            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            DataFormatter formatter = new DataFormatter();
-            Iterator<Row> rowIterator = sheet.rowIterator();
-            rowIterator.next();
-            Map<String, Set<String>> replaceSource = new LinkedHashMap<>();
-            while (rowIterator.hasNext()) {
-
-                String[] values = rowToStringArray(rowIterator.next(), formatter, evaluator);
-                if (values[0] != null && !values[0].isEmpty() && values[1] != null && !values[1].isEmpty()) {
-                    Set<String> replace = replaceSource.get(values[0]);
-                    if (replace == null) {
-                        replace = new HashSet<>();
-                    }
-                    if (values.length >= 3 && values[2].length() > 0) {
-                        replace.add(values[1] + "#" + values[2]);
-                    } else {
-                        replace.add(values[1]);
-                    }
-                    replaceSource.put(values[0], replace);
-                }
-            }
-            replaceSources.put(s, replaceSource);
-        }
-        int hashCode = replaceSources.hashCode();
-        if (oldHash != hashCode) {
-            header.put("change", true);
-            oldHash = hashCode;
-        }
+        Stream.of("納期案内", "媒体一覧", "カタログ（最新）", "カタログ（旧）")
+                .forEach((sheetName) -> {
+                    Sheet sheet = workbook.getSheet(sheetName);
+                    List<String[]> sal = utility.sheetToStringArrayList(sheet);
+                    Map<String, Set<String>> replaceSource = new LinkedHashMap<>();
+                    sal.stream().skip(1)
+                    .forEach((values) -> {
+                        if (utility.isFilled(values, 2)) {
+                            Set<String> replace = replaceSource.containsKey(values[0]) ? replaceSource.get(values[0]) : new HashSet<>();
+                            if (utility.isFilled(values, 3)) {
+                                replace.add(values[1] + "#" + values[2]);
+                            } else {
+                                replace.add(values[1]);
+                            }
+                            replaceSource.put(values[0], replace);
+                        }
+                    });
+                    replaceSources.put(sheetName, replaceSource);
+                });
+        updateHash(header, replaceSources.hashCode());
     }
 
     public Set<String> getReplacedKeys(String sheetName, String itemKey, String itemName) {
@@ -98,56 +86,34 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
         String codeField = setting.get("商品コードの列名");
         String nodeField = setting.get("商品ノードの列名");
         String itemNameField = setting.get("商品名の列名");
-        Iterator<Map<String, String>> iterator = mapList.iterator();
         List<Map<String, String>> newRows = new ArrayList<>();
-        while (iterator.hasNext()) {
-            Map<String, String> row = iterator.next();
-            String code = row.get(codeField);
-            String node = row.get(nodeField);
-            code = Normalizer.normalize(code, Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
-            if (node.contains(" ")) {
-                String[] nodeSplit = node.split(" ");
-                for (String n : nodeSplit) {
-                    n = Normalizer.normalize(n, Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
-                    String itemKey = code + "-" + n;
-                    if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
-                        Set<String> replacedKeys = itemKeyReplacer.getReplacedKeys(sheetName, itemKey, row.get(itemNameField));
-                        replacedKeys.stream().filter((s) -> (!s.equals("削除"))).map((s) -> {
-                            Map<String, String> newRow = new LinkedHashMap<>();
-                            newRow.putAll(row);
-                            newRow.put("ITEM_KEY", s);
-                            return newRow;
-                        }).forEach(newRows::add);
-                    } else {
-                        Map<String, String> newRow = new LinkedHashMap<>();
-                        newRow.putAll(row);
-                        newRow.put("ITEM_KEY", itemKey);
-                        newRows.add(newRow);
-                    }
-                }
-                iterator.remove();
+
+        mapList.stream().flatMap((map) -> {
+            return Stream.of(map.get(nodeField).split(" ")).map((n) -> {
+                String itemKey = Normalizer.normalize(map.get(codeField), Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
+                n = Normalizer.normalize(n, Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
+                itemKey = n.isEmpty() ? itemKey : itemKey + "-" + n;
+                Map<String, String> newRow = new LinkedHashMap<>();
+                newRow.putAll(map);
+                newRow.put("ITEM_KEY", itemKey);
+                return newRow;
+            });
+        }).flatMap((newRow) -> {
+            String itemKey = newRow.get("ITEM_KEY");
+            if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
+                return itemKeyReplacer.getReplacedKeys(sheetName, itemKey, newRow.get(itemNameField)).stream()
+                        .filter((newKey) -> {
+                            return !newKey.equals("削除");
+                        }).map((newKey) -> {
+                            Map<String, String> replacedRow = new LinkedHashMap<>();
+                            replacedRow.putAll(newRow);
+                            replacedRow.put("ITEM_KEY", newKey);
+                            return replacedRow;
+                        });
             } else {
-                node = Normalizer.normalize(node, Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
-                String itemKey;
-                if (node.isEmpty()) {
-                    itemKey = code;
-                } else {
-                    itemKey = code + "-" + node;
-                }
-                if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
-                    Set<String> replacedKeys = itemKeyReplacer.getReplacedKeys(sheetName, itemKey, row.get(itemNameField));
-                    replacedKeys.stream().map((newKey) -> {
-                        Map<String, String> newRow = new LinkedHashMap<>();
-                        newRow.putAll(row);
-                        newRow.put("ITEM_KEY", newKey);
-                        return newRow;
-                    }).forEach(newRows::add);
-                } else {
-                    row.put("ITEM_KEY", itemKey);
-                    newRows.add(row);
-                }
+                return Stream.of(newRow);
             }
-        }
+        }).forEach(newRows::add);
         mapList.clear();
         mapList.addAll(newRows);
     }

@@ -1,52 +1,77 @@
 package com.mycode.baitaikun;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Utility {
 
     public List<Map<String, String>> createMapList(List<String[]> stringArrayList, int skip) {
-        Iterator<String[]> iterator = stringArrayList.iterator();
         List<Map<String, String>> mapList = new ArrayList<>();
-        for (int i = 0; i < skip; i++) {
-            iterator.next();
-        }
-        String[] header = iterator.next();
-        while (iterator.hasNext()) {
-            String[] values = iterator.next();
-            Map<String, String> map = new LinkedHashMap<>();
-            int valueLengthMax = 0;
-            for (int i = 0; i < header.length && i < values.length; i++) {
-                map.put(header[i], values[i]);
-                valueLengthMax = Math.max(values[i].length(), valueLengthMax);
-            }
-            if (valueLengthMax != 0) {
-                mapList.add(map);
-            }
-        }
+        String[] header = stringArrayList.get(skip);
+        stringArrayList.stream()
+                .skip(skip + 1)
+                .forEach((values) -> {
+                    Map<String, String> map = new LinkedHashMap<>();
+                    int valueMaxLength = IntStream.range(0, Math.min(header.length, values.length))
+                    .map((i) -> {
+                        map.put(header[i], values[i]);
+                        return values[i].length();
+                    }).max().orElse(0);
+                    if (valueMaxLength > 0) {
+                        mapList.add(map);
+                    }
+                });
         return mapList;
     }
 
-    public boolean hasNull(String[] array) {
-        for (String s : array) {
-            if (s == null) {
-                return true;
-            }
-        }
-        return false;
+    public List<String[]> sheetToStringArrayList(Sheet sheet) {
+        FormulaEvaluator evaluator = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+        DataFormatter formatter = new DataFormatter();
+        Iterable<Row> iterable = () -> sheet.rowIterator();
+        return StreamSupport.stream(iterable.spliterator(), false)
+                .map((row) -> {
+                    return rowToStringArray(row, formatter, evaluator);
+                }).filter((array) -> {
+                    return array != null;
+                }).collect(Collectors.toList());
     }
 
-    public boolean isNotEmpty(String[] array) {
-        for (String s : array) {
-            if (s != null && !s.isEmpty()) {
-                return true;
-            }
+    public String[] rowToStringArray(Row row, DataFormatter formatter, FormulaEvaluator evaluator) {
+        try {
+            return IntStream.range(0, row.getLastCellNum())
+                    .mapToObj((i) -> {
+                        return formatter.formatCellValue(row.getCell(i), evaluator).replaceAll("\r\n|\n|\r", " ");
+                    }).toArray((s) -> new String[s]);
+        } catch (Throwable t) {
+            return null;
         }
-        return false;
+    }
+
+    public boolean isAnyNotEmpty(String[] array) {
+        return Stream.of(array).anyMatch((s) -> {
+            return s != null && !s.isEmpty();
+        });
+    }
+
+    public boolean isFilled(String[] array, int checkSize) {
+        if (array.length < checkSize) {
+            return false;
+        } else {
+            return Stream.of(array).limit(checkSize).allMatch((s) -> {
+                return s != null && !s.isEmpty();
+            });
+        }
     }
 }

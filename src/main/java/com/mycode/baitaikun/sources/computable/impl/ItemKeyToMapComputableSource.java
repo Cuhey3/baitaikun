@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class ItemKeyToMapComputableSource extends ComputableSource {
 
     @Getter
-    public Map<String, Map<String, String>> itemKeyToMap;
+    final public Map<String, Map<String, String>> itemKeyToMap = new LinkedHashMap<>();
     @Autowired
     NoukiComputableSource nouki;
     @Autowired
@@ -42,47 +42,23 @@ public class ItemKeyToMapComputableSource extends ComputableSource {
 
     @Override
     public Object compute() {
-        itemKeyToMap = new LinkedHashMap<>();
-        List<Map<String, String>> mapList = nouki.getMapList();
-        String settingName = nouki.getSettingName();
-        for (Map<String, String> map : mapList) {
-            String itemKey = map.get("ITEM_KEY");
-            Map<String, String> exist = itemKeyToMap.get(itemKey);
-            if (exist == null) {
-                exist = new LinkedHashMap<>();
-            }
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                exist.put(settingName + "." + entry.getKey(), entry.getValue());
-            }
-            itemKeyToMap.put(itemKey, exist);
-        }
-        mapList = newCatalog.getMapList();
-        settingName = newCatalog.getSettingName();
-        for (Map<String, String> map : mapList) {
-            String itemKey = map.get("ITEM_KEY");
-            Map<String, String> exist = itemKeyToMap.get(itemKey);
-            if (exist == null) {
-                exist = new LinkedHashMap<>();
-            }
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                exist.put(settingName + "." + entry.getKey(), entry.getValue());
-            }
-            itemKeyToMap.put(itemKey, exist);
-        }
-        mapList = oldCatalog.getMapList();
-        settingName = oldCatalog.getSettingName();
-        for (Map<String, String> map : mapList) {
-            String itemKey = map.get("ITEM_KEY");
-            Map<String, String> exist = itemKeyToMap.get(itemKey);
-            if (exist == null) {
-                exist = new LinkedHashMap<>();
-            }
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                exist.put(settingName + "." + entry.getKey(), entry.getValue());
-            }
-            itemKeyToMap.put(itemKey, exist);
-        }
-        //System.out.println(itemKeyToMap);
+        itemKeyToMap.clear();
+        updateItemKeyToMap(nouki.getMapList(), nouki.getSettingName());
+        updateItemKeyToMap(newCatalog.getMapList(), newCatalog.getSettingName());
+        updateItemKeyToMap(oldCatalog.getMapList(), oldCatalog.getSettingName());
         return null;
+    }
+
+    private void updateItemKeyToMap(List<Map<String, String>> mapList, String settingName) {
+        mapList.stream().forEach((map) -> {
+            String itemKey = map.get("ITEM_KEY");
+            Map<String, String> exist
+                    = itemKeyToMap.containsKey(itemKey) ? itemKeyToMap.get(itemKey) : new LinkedHashMap<>();
+            map.entrySet().stream()
+                    .forEach((entry) -> {
+                        exist.put(settingName + "." + entry.getKey(), entry.getValue());
+                    });
+            itemKeyToMap.put(itemKey, exist);
+        });
     }
 }

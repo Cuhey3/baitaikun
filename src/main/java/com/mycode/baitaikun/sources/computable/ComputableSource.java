@@ -31,13 +31,14 @@ public abstract class ComputableSource extends Source {
                 .bean(this, "ready()");
 
         from(computeEndpoint)
-                .to(computeImplEndpoint);
+                .to(computeImplEndpoint)
+                .to("direct:broker.poll");
     }
 
     public void injectSuperiorSources() {
-        for (Class clazz : superiorSourceClasses) {
+        superiorSourceClasses.stream().forEach((Class clazz) -> {
             superiorSources.add((Source) factory.getBean(clazz));
-        }
+        });
     }
 
     @Override
