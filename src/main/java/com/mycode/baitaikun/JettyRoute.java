@@ -43,7 +43,7 @@ public class JettyRoute extends RouteBuilder {
                 .choice().when(header("method").isEqualTo("init")).to("direct:waitJson")
                 .otherwise().bean(this, "getTime()");
 
-        fromF("file:%s?noop=true&delay=5000&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName)
+        fromF("file:%s?noop=true&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), templateFileName)
                 .bean(this, "saveHtml").to("direct:waitSetting");
 
         from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
@@ -140,8 +140,10 @@ public class JettyRoute extends RouteBuilder {
             body = m.replaceFirst(searchField.get(argNum - 1));
         }
         header.put(Exchange.FILE_NAME, "媒体くんX.html");
-        completeHtml = body;
-        System.out.println("[MESSAGE] 媒体くんXのページを更新しました URL: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
+        if (completeHtml == null || !completeHtml.equals(body)) {
+            completeHtml = body;
+            System.out.println("[MESSAGE] 媒体くんXのページを更新しました URL: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
+        }
         return body;
     }
 }

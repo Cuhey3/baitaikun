@@ -39,6 +39,9 @@ public class Broker extends RouteBuilder {
         if (this.getContext().getRouteStatus("broker.poll").isStopped()) {
             this.getContext().startRoute("broker.poll");
         }
+        if (this.getContext().getRouteStatus("settingRoute").isStopped()) {
+            this.getContext().startRoute("settingRoute");
+        }
     }
 
     public ComputableSource getShoudUpdateOneSource() {

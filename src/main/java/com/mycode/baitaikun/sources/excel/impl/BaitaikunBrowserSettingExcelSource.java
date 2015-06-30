@@ -123,7 +123,6 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
                             sortRule.put(Integer.parseInt(values[6]), 0);
                     }
                 });
-        System.out.println(needFields);
         sortFields.entrySet().stream()
                 .filter((entry) -> (sortRule.get(entry.getKey()) != 0))
                 .forEach((entry) -> {
