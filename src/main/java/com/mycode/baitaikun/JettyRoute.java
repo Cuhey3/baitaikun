@@ -5,6 +5,7 @@ import com.mycode.baitaikun.sources.excel.impl.BaitaikunBrowserSettingExcelSourc
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +28,7 @@ public class JettyRoute extends RouteBuilder {
     private final String port;
     private final String templateFileName;
     String templateHtml;
+    private final ArrayList<String> searchField = new ArrayList<>();
     @Getter
     String completeHtml;
 
@@ -83,6 +85,7 @@ public class JettyRoute extends RouteBuilder {
 
     public String createHtml(@Headers Map header) throws UnknownHostException {
         String body = templateHtml;
+        searchField.clear();
         String[] argsSetting = Stream.of(baitaikunBrowserSettingExcelSource.getArgsSetting())
                 .skip(1)
                 .map(arg -> {
@@ -98,14 +101,43 @@ public class JettyRoute extends RouteBuilder {
                         case "自動取得:スタイル":
                             return baitaikunBrowserSettingExcelSource.getCss();
                         default:
-                            return arg;
+                            if (arg.startsWith("検索項目:")) {
+                                String field = arg.replace("検索項目:", "");
+                                searchField.add(field);
+                                String sign = baitaikunBrowserSettingExcelSource.getListFields().stream()
+                                .filter((map) -> {
+                                    return map.get("exp").equals(field);
+                                }).map((map) -> {
+                                    return map.get("sign");
+                                }).findFirst().orElse(null);
+                                if (sign == null) {
+                                    sign = baitaikunBrowserSettingExcelSource.getDetailFields().stream()
+                                    .filter((map) -> {
+                                        return map.get("exp").equals(field);
+                                    }).map((map) -> {
+                                        return map.get("sign");
+                                    }).findFirst().orElse(null);
+                                }
+                                if (sign != null) {
+                                    return "data." + sign;
+                                } else {
+                                    return "data.$";
+                                }
+                            } else {
+                                return arg;
+                            }
                     }
                 }).toArray(size -> new String[size]);
-        Pattern p = Pattern.compile("(<< ?引数)(\\d+)( ?>>)");
+        Pattern p1 = Pattern.compile("(<< ?引数)(\\d+)( ?>>)");
         Matcher m;
-        while ((m = p.matcher(body)).find()) {
+        while ((m = p1.matcher(body)).find()) {
             int argNum = Integer.parseInt(m.group(2));
             body = m.replaceFirst(argsSetting[argNum - 1]);
+        }
+        Pattern p2 = Pattern.compile("(<< ?検索項目)(\\d+)( ?>>)");
+        while ((m = p2.matcher(body)).find()) {
+            int argNum = Integer.parseInt(m.group(2));
+            body = m.replaceFirst(searchField.get(argNum - 1));
         }
         header.put(Exchange.FILE_NAME, "媒体くんX.html");
         completeHtml = body;

@@ -7,7 +7,9 @@ import com.mycode.baitaikun.sources.excel.ExcelSource;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import lombok.Getter;
@@ -21,13 +23,13 @@ import org.springframework.stereotype.Component;
 public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
 
     @Getter
-    final LinkedHashMap<String, String> needFields = new LinkedHashMap<>();
+    final Map<String, String> needFields = Collections.synchronizedMap(new LinkedHashMap<>());
     @Getter
-    final ArrayList<Map<String, String>> listFields = new ArrayList<>();
+    final List<Map<String, String>> listFields = Collections.synchronizedList(new ArrayList<>());
     @Getter
-    final ArrayList<Map<String, String>> detailFields = new ArrayList<>();
+    final List<Map<String, String>> detailFields = Collections.synchronizedList(new ArrayList<>());
     @Getter
-    final ArrayList<String> priceFields = new ArrayList<>();
+    final List<String> priceFields = Collections.synchronizedList(new ArrayList<>());
     @Getter
     final Map<String, String> keywordToClassName = new LinkedHashMap<>();
     @Getter
@@ -121,7 +123,7 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
                             sortRule.put(Integer.parseInt(values[6]), 0);
                     }
                 });
-
+        System.out.println(needFields);
         sortFields.entrySet().stream()
                 .filter((entry) -> (sortRule.get(entry.getKey()) != 0))
                 .forEach((entry) -> {

@@ -60,8 +60,8 @@ public class CreateJsonComputableSource extends ComputableSource {
     public Object compute() {
         List<Map<String, String>> mapList = joinAndFunctionComputableSource.getMapList();
         mapList.sort(new MyComparator(baitaikunBrowserSettingExcelSource.getSortSetting()));
-        LinkedHashMap<String, String> needFields = baitaikunBrowserSettingExcelSource.getNeedFields();
-        ArrayList<String> priceFields = baitaikunBrowserSettingExcelSource.getPriceFields();
+        Map<String, String> needFields = baitaikunBrowserSettingExcelSource.getNeedFields();
+        List<String> priceFields = baitaikunBrowserSettingExcelSource.getPriceFields();
         List<Map<String, String>> collect = mapList.stream().map((record) -> {
             Map<String, String> newRecord = new LinkedHashMap<>();
             needFields.entrySet().stream().forEach((entry) -> {

@@ -5,6 +5,7 @@ import com.mycode.baitaikun.Settings;
 import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.excel.ExcelSource;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
 public class BaitaikunSettingsExcelSource extends ExcelSource {
 
     @Getter
-    Map<String, Map<String, String>> settings = new LinkedHashMap<>();
+    Map<String, Map<String, String>> settings = Collections.synchronizedMap(new LinkedHashMap<>());
 
     public BaitaikunSettingsExcelSource() throws IOException, Exception {
         setSourceKind("excel.settings");
