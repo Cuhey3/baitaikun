@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja" ng-app="MyApp" id="my">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>媒体くんX</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <style>
+            body {
+                padding-top: 60px;
+                padding-bottom: 20px;
+            }
+            .child{
+                margin-left:10px;
+                margin-bottom: 20px;
+            }
+            [readonly]:hover{
+                cursor:pointer;
+            }
+            << 引数3 >>
+        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0/angular.min.js"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.10.0/ui-bootstrap-tpls.min.js"></script>
+        <script>
+            var d = "";
+            var updateTime = "";
+            var method = "init";
+            var keywordObject = {};
+            var keywordArray = [];
+            var keywordSize = 0;
+            angular.module("MyApp", ["ui.bootstrap"])
+                    .controller("MyController", ["$scope", "$modal", "$http", function ($scope, $modal, $http) {
+                            var localhost = "<<引数1>>";
+                            var port = "<<引数2>>";
+                            $http.jsonp("http://" + localhost + ":" + port + "/query?method=init&param=" + new Date().getTime());
+                            setInterval(function () {
+                                $http.jsonp("http://" + localhost + ":" + port + "/query?method=" + method + "&param=" + new Date().getTime());
+                            }, 15000);
+                            $scope.clear = function () {
+                                $scope.data = {};
+                            };
+                            $scope.update = function () {
+                                window.location.reload();
+                            };
+                            $scope.open = function (r) {
+                                $modal.open({
+                                    templateUrl: 'myModal',
+                                    controller: ModalInstanceCtrl,
+                                    windowClass: 'app-modal-window',
+                                    resolve: {
+                                        record: function () {
+                                            return  r;
+                                        }
+                                    }
+                                });
+                            };
+                            $scope.highlight = function (str) {
+                                if (str) {
+                                    for (var i = 0; i < keywordSize; i++) {
+                                        if (str.lastIndexOf(keywordArray[i], 0) === 0) {
+                                            return keywordObject[keywordArray[i]];
+                                        }
+                                    }
+                                }
+                                return null;
+                            };
+                        }
+                    ]);
+            var ModalInstanceCtrl = function ($scope, $modalInstance, record) {
+                $scope.record = record;
+
+                $scope.ok = function () {
+                    $modalInstance.close();
+                };
+
+                $scope.cancel = function () {
+                    $modalInstance.dismiss('cancel');
+                };
+                $scope.highlight = function (str) {
+                    if (str) {
+                        for (var i = 0; i < keywordSize; i++) {
+                            if (str.lastIndexOf(keywordArray[i], 0) === 0) {
+                                return keywordObject[keywordArray[i]];
+                            }
+                        }
+                    }
+                    return null;
+                };
+            };
+            function JSON_CALLBACK(data) {
+                if (data.method === "timer") {
+                    if (updateTime + "" !== data.time + "") {
+                        if (confirm("更新がありました。\n再読み込みする時はOKを、後で更新する時はキャンセルを押してください。")) {
+                            document.location.reload();
+                        }
+                    }
+                } else {
+                    var targetScope = angular.element(document.getElementById("my")).scope();
+                    targetScope.$apply(function () {
+                        targetScope.all = data.data;
+                        targetScope.listColumn = data.listColumn;
+                        targetScope.detailColumn = data.detailColumn;
+                        keywordObject = data.keywords;
+                        keywordArray = Object.keys(data.keywords);
+                        keywordSize = keywordArray.length;
+                    });
+                    if (updateTime !== "") {
+                        if (updateTime !== data.time) {
+                            alert("リストが更新されました。" + data.time);
+                        } else {
+                            alert("リストは最新です。" + updateTime);
+                        }
+                    }
+                    updateTime = data.time;
+                    method = "timer";
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div class="container" ng-controller="MyController">
+            <div class="row child">
+                <div class="col-xs-2">
+                    <label><<検索項目1>>の一部</label>
+                    <input type="text" style="width:150px;" ng-model="<< 引数4 >>" />
+                </div>
+                <div class="col-xs-2">
+                    <label><<検索項目2>>の一部</label>
+                    <input type="text" style="width:150px;" ng-model="<< 引数5 >>"/>
+                </div>
+                <div class="col-xs-2">
+                    <label>どれか</label>
+                    <input type="text" style="width:150px;" ng-model="data.$"/>
+                </div>
+                <div class="col-xs-1" style="padding-top:20px;">
+                    <input type="button" value="クリア" ng-click="clear()"/>
+                </div>
+                <div class="col-xs-2" style="padding-top:20px;">
+                    <input type="button" value="リストを更新" ng-click="update()"/>
+                </div>
+            </div>
+            <table id="searchObjResults" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th ng-repeat="obj in listColumn">{{obj.exp}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="obj in all| filter:data| limitTo:100"  ng-click="open(obj)">
+                        <td ng-repeat="col in listColumn" ng-class="highlight(obj[col.sign])">{{obj[col.sign]}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <div class="container">
+                <div class="navbar-header">
+                    <span class="navbar-brand" style="color:white;font-size:x-large;font-weight:bold;">媒体くん <span style="color:red">X</span></span>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <footer style="margin-left:30px;">
+            <p>&copy; 2015 doi shuhei</p>
+        </footer>
+        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+        <script  type="text/ng-template" id="myModal">
+            <div class="modal-header">
+            <h3 class="modal-title">商品詳細</h3>
+            </div>
+            <div class="modal-body">
+            <table class="table">
+            <tbody>
+            <tr ng-repeat="col in detailColumn">
+            <th style="min-width:150px;">{{col.exp}}</th><td ng-class="highlight(record[col.sign])">{{record[col.sign]}}</td>
+            </tr>
+            </tbody>
+            </table>
+            <div class="modal-footer">
+            <button class="btn btn-primary" ng-click="ok()">OK</button>
+            <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
+            </div>  
+            </div>
+            </body>
+        </script>
+    </body>
+</html>
