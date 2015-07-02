@@ -36,9 +36,9 @@ public abstract class ComputableSource extends Source {
     }
 
     public void injectSuperiorSources() {
-        superiorSourceClasses.stream().forEach((Class clazz) -> {
-            superiorSources.add((Source) factory.getBean(clazz));
-        });
+        superiorSourceClasses.stream()
+                .forEach(clazz
+                        -> superiorSources.add((Source) factory.getBean(clazz)));
     }
 
     @Override

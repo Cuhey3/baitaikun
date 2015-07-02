@@ -1,6 +1,5 @@
 package com.mycode.baitaikun;
 
-import com.mycode.baitaikun.sources.Source;
 import com.mycode.baitaikun.sources.computable.ComputableSource;
 import java.util.HashSet;
 import java.util.Set;
@@ -33,9 +32,9 @@ public class Broker extends RouteBuilder {
     public void setComputableSources() throws Exception {
         computableSources.clear();
         Stream.of(factory.getBeanNamesForType(ComputableSource.class))
-                .forEach((beanName) -> {
-                    computableSources.add((ComputableSource) factory.getBean(beanName));
-                });
+                .map((beanName)
+                        -> (ComputableSource) factory.getBean(beanName))
+                .forEach(computableSources::add);
         if (this.getContext().getRouteStatus("broker.poll").isStopped()) {
             this.getContext().startRoute("broker.poll");
         }
@@ -46,13 +45,12 @@ public class Broker extends RouteBuilder {
 
     public ComputableSource getShoudUpdateOneSource() {
         return computableSources.stream()
-                .filter((source) -> {
-                    return !source.isUpToDate() && source.isReady();
-                }).filter((source) -> {
-                    return source.getSuperiorSources().stream()
-                    .allMatch((Source superiorSource) -> {
-                        return superiorSource.isUpToDate() && superiorSource.isReady();
-                    });
-                }).findFirst().orElse(null);
+                .filter((source)
+                        -> !source.isUpToDate() && source.isReady())
+                .filter((source)
+                        -> source.getSuperiorSources().stream()
+                        .allMatch((superiorSource)
+                                -> superiorSource.isUpToDate() && superiorSource.isReady()))
+                .findFirst().orElse(null);
     }
 }

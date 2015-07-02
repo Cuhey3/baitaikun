@@ -76,9 +76,9 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
         TreeMap<Integer, Integer> sortRule = new TreeMap<>();
         utility.sheetToStringArrayList(workbook.getSheet("検索画面表示設定")).stream()
                 .skip(1)
+                .filter((values)
+                        -> values.length > 5 && utility.isAnyNotEmpty(values)) // 大丈夫？？？
                 .filter((values) -> {
-                    return values.length > 5 && utility.isAnyNotEmpty(values); // 大丈夫？？？
-                }).filter((values) -> {
                     String fieldName = values[1] + "." + values[2];
                     String sign = needFields.get(fieldName);
                     if (sign == null) {
@@ -86,12 +86,14 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
                         needFields.put(fieldName, sign);
                     }
                     return true;
-                }).filter((values) -> {
+                })
+                .filter((values) -> {
                     if (values[4].equals("金額")) {
                         priceFields.add(values[1] + "." + values[2]);
                     }
                     return true;
-                }).filter((values) -> {
+                })
+                .filter((values) -> {
                     Map<String, String> m = new LinkedHashMap<>();
                     m.put("sign", needFields.get(values[1] + "." + values[2]));
                     m.put("exp", values[3]);
@@ -104,12 +106,12 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
                             break;
                     }
                     return true;
-                }).filter((values) -> {
-                    return values.length > 7
-                    && values[6] != null && !values[6].isEmpty()
-                    && values[7] != null && !values[7].isEmpty()
-                    && values[6].matches("^\\d+$");
                 })
+                .filter((values)
+                        -> values.length > 7
+                        && values[6] != null && !values[6].isEmpty()
+                        && values[7] != null && !values[7].isEmpty()
+                        && values[6].matches("^\\d+$"))
                 .forEach((values) -> {
                     sortFields.put(Integer.parseInt(values[6]), values[1] + "." + values[2]);
                     switch (values[7]) {
@@ -124,24 +126,26 @@ public class BaitaikunBrowserSettingExcelSource extends ExcelSource {
                     }
                 });
         sortFields.entrySet().stream()
-                .filter((entry) -> (sortRule.get(entry.getKey()) != 0))
-                .forEach((entry) -> {
-                    sortSetting.put(entry.getValue(), sortRule.get(entry.getKey()));
-                });
+                .filter((entry)
+                        -> sortRule.get(entry.getKey()) != 0)
+                .forEach((entry)
+                        -> sortSetting.put(entry.getValue(), sortRule.get(entry.getKey())));
 
-        argsSetting = utility.sheetToStringArrayList(workbook.getSheet("引数設定")).stream()
-                .filter((values) -> {
-                    return values.length > 1 && values[1] != null && !values[1].isEmpty();
-                }).map((values) -> {
-                    return values[1];
-                }).toArray((size) -> new String[size]);
+        argsSetting
+                = utility.sheetToStringArrayList(workbook.getSheet("引数設定")).stream()
+                .filter((values)
+                        -> values.length > 1 && values[1] != null && !values[1].isEmpty())
+                .map((values)
+                        -> values[1])
+                .toArray((size)
+                        -> new String[size]);
 
         StringBuilder sb = new StringBuilder();
         utility.sheetToStringArrayList(workbook.getSheet("強調キーワード")).stream()
                 .skip(1)
-                .filter((values) -> {
-                    return values.length > 1 && utility.isAnyNotEmpty(values);
-                }).forEach((values) -> {
+                .filter((values)
+                        -> values.length > 1 && utility.isAnyNotEmpty(values))
+                .forEach((values) -> {
                     String style = Normalizer.normalize(values[1], Normalizer.Form.NFKC);
                     String className = classNameToCSSStyle.inverse().get(style);
                     if (className == null) {

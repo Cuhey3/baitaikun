@@ -62,17 +62,19 @@ public class CreateJsonComputableSource extends ComputableSource {
         mapList.sort(new MyComparator(baitaikunBrowserSettingExcelSource.getSortSetting()));
         Map<String, String> needFields = baitaikunBrowserSettingExcelSource.getNeedFields();
         List<String> priceFields = baitaikunBrowserSettingExcelSource.getPriceFields();
-        List<Map<String, String>> collect = mapList.stream().map((record) -> {
-            Map<String, String> newRecord = new LinkedHashMap<>();
-            needFields.entrySet().stream().forEach((entry) -> {
-                if (priceFields.contains(entry.getKey())) {
-                    newRecord.put(entry.getValue(), convertPrice(record.get(entry.getKey())));
-                } else {
-                    newRecord.put(entry.getValue(), record.get(entry.getKey()));
-                }
-            });
-            return newRecord;
-        }).collect(Collectors.toList());
+        List<Map<String, String>> collect
+                = mapList.stream()
+                .map((record) -> {
+                    Map<String, String> newRecord = new LinkedHashMap<>();
+                    needFields.entrySet().stream().forEach((entry) -> {
+                        if (priceFields.contains(entry.getKey())) {
+                            newRecord.put(entry.getValue(), convertPrice(record.get(entry.getKey())));
+                        } else {
+                            newRecord.put(entry.getValue(), record.get(entry.getKey()));
+                        }
+                    });
+                    return newRecord;
+                }).collect(Collectors.toList());
         Map map = new LinkedHashMap();
         map.put("data", collect);
         map.put("listColumn", baitaikunBrowserSettingExcelSource.getListFields());

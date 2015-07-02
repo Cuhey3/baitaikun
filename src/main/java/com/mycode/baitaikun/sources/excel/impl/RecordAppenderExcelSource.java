@@ -4,10 +4,10 @@ import com.mycode.baitaikun.Settings;
 import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.excel.ExcelSource;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -38,20 +38,21 @@ public class RecordAppenderExcelSource extends ExcelSource {
                 .forEach((sheetName) -> {
                     Sheet sheet = workbook.getSheet(sheetName);
                     List<String[]> sal = utility.sheetToStringArrayList(sheet);
-                    List<Map<String, String>> appendRecordSource = new ArrayList<>();
                     String[] headerRow = sal.get(1);
-                    sal.stream().skip(2).forEach((values) -> {
+                    List<Map<String, String>> collect
+                    = sal.stream()
+                    .skip(2)
+                    .filter((values)
+                            -> utility.isAnyNotEmpty(values, headerRow.length))
+                    .map((values) -> {
                         Map<String, String> map = new LinkedHashMap<>();
-                        int valueMaxLength = IntStream.range(0, Math.min(headerRow.length, values.length))
-                        .map((i) -> {
-                            map.put(headerRow[i], values[i]);
-                            return values[i].length();
-                        }).max().orElse(0);
-                        if (valueMaxLength > 0) {
-                            appendRecordSource.add(map);
-                        }
-                    });
-                    appendRecordSources.put(sheetName, appendRecordSource);
+                        IntStream.range(0, Math.min(headerRow.length, values.length))
+                        .forEach((i)
+                                -> map.put(headerRow[i], values[i]));
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+                    appendRecordSources.put(sheetName, collect);
                 });
         updateHash(header, appendRecordSources.hashCode());
     }

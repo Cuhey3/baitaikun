@@ -66,10 +66,11 @@ public class NoukiComputableSource extends ComputableSource {
         replacer.createItemKey(settingName, mapList);
         String noukiField = baitaikun.getSettings().get("納期案内").get("納期の列名");
         String dateField = baitaikun.getSettings().get("納期案内").get("日付の列名");
-        mapList.stream().forEach(map -> {
-            noukiClean(noukiField, map);
-            formatDate(map, dateField);
-        });
+        mapList.stream()
+                .forEach(map -> {
+                    noukiClean(noukiField, map);
+                    formatDate(map, dateField);
+                });
         return null;
     }
 

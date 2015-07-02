@@ -50,27 +50,31 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
     public Object compute() {
         mapList.clear();
         Map<String, Map<String, String>> itemKeyToMap = itemKeyToMapComputableSource.getItemKeyToMap();
-        baitai.getMapList().stream().map((map) -> {
-            Map<String, String> record = new LinkedHashMap<>();
-            String itemKey = map.get("ITEM_KEY");
-            map.entrySet().stream().forEach((entry) -> {
-                record.put("媒体一覧." + entry.getKey(), entry.getValue());
-                record.put("演算.ITEM_KEY", itemKey);
-            });
-            if (itemKeyToMap.containsKey(itemKey)) {
-                record.putAll(itemKeyToMap.get(itemKey));
-            }
-            return record;
-        }).forEach(mapList::add);
+        baitai.getMapList().stream()
+                .map((map) -> {
+                    Map<String, String> record = new LinkedHashMap<>();
+                    String itemKey = map.get("ITEM_KEY");
+                    map.entrySet().stream()
+                    .forEach((entry) -> {
+                        record.put("媒体一覧." + entry.getKey(), entry.getValue());
+                        record.put("演算.ITEM_KEY", itemKey);
+                    });
+                    if (itemKeyToMap.containsKey(itemKey)) {
+                        record.putAll(itemKeyToMap.get(itemKey));
+                    }
+                    return record;
+                })
+                .forEach(mapList::add);
 
         TaxInPrice taxInPrice = new TaxInPrice();
         Furikomi furikomi = new Furikomi();
         Bunkatsu bunkatsu = new Bunkatsu();
-        mapList.stream().forEach(map -> {
-            taxInPrice.setTaxInPrice(map);
-            furikomi.setFurikomi(map);
-            bunkatsu.setBunkatsu(map);
-        });
+        mapList.stream()
+                .forEach(map -> {
+                    taxInPrice.setTaxInPrice(map);
+                    furikomi.setFurikomi(map);
+                    bunkatsu.setBunkatsu(map);
+                });
         return null;
     }
 
@@ -84,28 +88,32 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             Map<String, Map<String, String>> setting = settings.getSettings();
             taxRate = Double.parseDouble(setting.get("共通設定").get("消費税率"));
             taxOutFields = Stream.of("媒体一覧", "納期案内", "カタログ（最新）", "カタログ（旧）")
-                    .map((sheetName) -> {
-                        return sheetName + "." + settings.getSettings().get(sheetName).get("税抜価格の列名");
-                    }).toArray(size -> new String[size]);
+                    .map((sheetName)
+                            -> sheetName + "." + settings.getSettings().get(sheetName).get("税抜価格の列名"))
+                    .toArray(size
+                            -> new String[size]);
         }
 
         public void setTaxInPrice(Map<String, String> map) {
-            Optional<Integer> findFirst = Stream.of(taxOutFields).filter((taxOutField) -> {
-                return map.containsKey(taxOutField);
-            }).map((taxOutField) -> {
-                return noDigit.matcher(map.get(taxOutField)).replaceAll("");
-            }).filter((taxOutPrice) -> {
-                return !taxOutPrice.isEmpty();
-            }).map((taxOutPrice) -> {
-                try {
-                    int parseInt = Integer.parseInt(taxOutPrice);
-                    return (int) (parseInt * (1 + taxRate));
-                } catch (NumberFormatException t) {
-                    return -1;
-                }
-            }).filter((taxOutPrice) -> {
-                return taxOutPrice > 0;
-            }).findFirst();
+            Optional<Integer> findFirst
+                    = Stream.of(taxOutFields)
+                    .filter((taxOutField)
+                            -> map.containsKey(taxOutField))
+                    .map((taxOutField)
+                            -> noDigit.matcher(map.get(taxOutField)).replaceAll(""))
+                    .filter((taxOutPrice)
+                            -> !taxOutPrice.isEmpty())
+                    .map((taxOutPrice) -> {
+                        try {
+                            int parseInt = Integer.parseInt(taxOutPrice);
+                            return (int) (parseInt * (1 + taxRate));
+                        } catch (NumberFormatException t) {
+                            return -1;
+                        }
+                    })
+                    .filter((taxOutPrice)
+                            -> taxOutPrice > 0)
+                    .findFirst();
             if (findFirst.isPresent()) {
                 map.put("演算.税込価格", findFirst.get() + "");
             }
@@ -128,7 +136,7 @@ public class JoinAndFunctionComputableSource extends ComputableSource {
             if (fukaItem.containsKey(itemKey)) {
                 fuka = fukaItem.get(itemKey);
             } else if (map.containsKey("媒体一覧.媒体コード")) { // ここ、決め打ちになってる　設定化しないと…
-                String baitaiCode = map.get("媒体一覧.媒体コード"); 
+                String baitaiCode = map.get("媒体一覧.媒体コード");
                 if (baitaiCode.length() > 2) {
                     baitaiCode = baitaiCode.substring(0, 3);
                     if (fukaBaitai.containsKey(baitaiCode)) {

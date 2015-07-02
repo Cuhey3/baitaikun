@@ -78,50 +78,52 @@ public class BaitaiComputableSource extends ComputableSource {
         Map<String, String> catalogSettings = settings_e.getSettings().get(catalogName);
         Map<String, String> referFields = new LinkedHashMap<>();
         Map<String, String> fillFields = new LinkedHashMap<>();
-        settings_e.getSettings().get(settingName).entrySet().stream().forEach((entry) -> {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            if (key.startsWith("カタログの値を参照する列名")) {
-                referFields.put(value, catalogSettings.get(value));
-            } else if (key.startsWith("カタログ設定から値を補う列名")) {
-                fillFields.put(value, catalogSettings.get(value));
-            }
-        });
+        settings_e.getSettings().get(settingName).entrySet().stream()
+                .forEach((entry) -> {
+                    String key = entry.getKey();
+                    String value = entry.getValue();
+                    if (key.startsWith("カタログの値を参照する列名")) {
+                        referFields.put(value, catalogSettings.get(value));
+                    } else if (key.startsWith("カタログ設定から値を補う列名")) {
+                        fillFields.put(value, catalogSettings.get(value));
+                    }
+                });
         itemKeyToMap_c.getItemKeyToMap().values().stream()
-                .filter(map -> map.containsKey(catalogName + ".ITEM_KEY"))
+                .filter(map
+                        -> map.containsKey(catalogName + ".ITEM_KEY"))
                 .map(map -> {
                     Map<String, String> record = new LinkedHashMap<>();
-                    referFields.entrySet().stream().forEach((entry) -> {
-                        record.put(entry.getKey(), map.get(catalogName + "." + entry.getValue()));
-                    });
-                    fillFields.entrySet().stream().forEach((entry) -> {
-                        record.put(entry.getKey(), entry.getValue());
-                    });
+                    referFields.entrySet().stream().forEach((entry)
+                            -> record.put(entry.getKey(), map.get(catalogName + "." + entry.getValue())));
+                    fillFields.entrySet().stream().forEach((entry)
+                            -> record.put(entry.getKey(), entry.getValue()));
                     return record;
-                }).forEach(mapList::add);
+                })
+                .forEach(mapList::add);
     }
 
     public void formatDate(List<Map<String, String>> mapList, String dateField, String errorValue) {
-        mapList.stream().forEach((map) -> {
-            String date = map.get(dateField);
-            if (date == null) {
-                map.put(dateField, errorValue);
-            } else {
-                Matcher m = datePattern.matcher(date);
-                if (m.find()) {
-                    String month = m.group(2);
-                    if (month.length() == 2) {
-                        month = "0" + month;
+        mapList.stream()
+                .forEach((map) -> {
+                    String date = map.get(dateField);
+                    if (date == null) {
+                        map.put(dateField, errorValue);
+                    } else {
+                        Matcher m = datePattern.matcher(date);
+                        if (m.find()) {
+                            String month = m.group(2);
+                            if (month.length() == 2) {
+                                month = "0" + month;
+                            }
+                            String day = m.group(3);
+                            if (day.length() == 1) {
+                                day = "0" + day;
+                            }
+                            map.put(dateField, m.group(1) + month + day);
+                        } else {
+                            map.put(dateField, errorValue + date);
+                        }
                     }
-                    String day = m.group(3);
-                    if (day.length() == 1) {
-                        day = "0" + day;
-                    }
-                    map.put(dateField, m.group(1) + month + day);
-                } else {
-                    map.put(dateField, errorValue + date);
-                }
-            }
-        });
+                });
     }
 }

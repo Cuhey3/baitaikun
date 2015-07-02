@@ -61,17 +61,18 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
     public Set<String> getReplacedKeys(String sheetName, String itemKey, String itemName) {
         Set<String> replace = replaceSources.get(sheetName).get(itemKey);
         Set<String> replacedKeys = new LinkedHashSet<>();
-        replace.stream().forEach((r) -> {
-            if (r.contains("#")) {
-                if (r.endsWith("#" + itemName)) {
-                    replacedKeys.add(r.split("#")[0]);
-                } else {
-                    replacedKeys.add(itemKey);
-                }
-            } else {
-                replacedKeys.add(r);
-            }
-        });
+        replace.stream()
+                .forEach((r) -> {
+                    if (r.contains("#")) {
+                        if (r.endsWith("#" + itemName)) {
+                            replacedKeys.add(r.split("#")[0]);
+                        } else {
+                            replacedKeys.add(itemKey);
+                        }
+                    } else {
+                        replacedKeys.add(r);
+                    }
+                });
         return replacedKeys;
     }
 
@@ -88,42 +89,47 @@ public class ItemKeyReplaceExcelSource extends ExcelSource {
         String itemNameField = setting.get("商品名の列名");
         List<Map<String, String>> newRows = new ArrayList<>();
 
-        mapList.stream().flatMap((map) -> {
-            return Stream.of(map.get(nodeField).split(" ")).map((n) -> {
-                String itemKey = Normalizer.normalize(map.get(codeField), Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
-                n = Normalizer.normalize(n, Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
-                itemKey = n.isEmpty() ? itemKey : itemKey + "-" + n;
-                Map<String, String> newRow = new LinkedHashMap<>();
-                newRow.putAll(map);
-                newRow.put("ITEM_KEY", itemKey);
-                return newRow;
-            });
-        }).flatMap((newRow) -> {
-            String itemKey = newRow.get("ITEM_KEY");
-            if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
-                return itemKeyReplacer.getReplacedKeys(sheetName, itemKey, newRow.get(itemNameField)).stream()
-                        .filter((newKey) -> {
-                            return !newKey.equals("削除");
-                        }).map((newKey) -> {
+        mapList.stream()
+                .flatMap((map)
+                        -> Stream.of(map.get(nodeField).split(" "))
+                        .map((n) -> {
+                            String itemKey = Normalizer.normalize(map.get(codeField), Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
+                            n = Normalizer.normalize(n, Normalizer.Form.NFKC).replaceAll("[^\\da-zA-Z\\*]", "");
+                            itemKey = n.isEmpty() ? itemKey : itemKey + "-" + n;
+                            Map<String, String> newRow = new LinkedHashMap<>();
+                            newRow.putAll(map);
+                            newRow.put("ITEM_KEY", itemKey);
+                            return newRow;
+                        })
+                )
+                .flatMap((newRow) -> {
+                    String itemKey = newRow.get("ITEM_KEY");
+                    if (itemKeyReplacer.hasReplacedKey(sheetName, itemKey)) {
+                        return itemKeyReplacer.getReplacedKeys(sheetName, itemKey, newRow.get(itemNameField)).stream()
+                        .filter((newKey)
+                                -> !newKey.equals("削除"))
+                        .map((newKey) -> {
                             Map<String, String> replacedRow = new LinkedHashMap<>();
                             replacedRow.putAll(newRow);
                             replacedRow.put("ITEM_KEY", newKey);
                             return replacedRow;
                         });
-            } else {
-                return Stream.of(newRow);
-            }
-        }).forEach(newRows::add);
+                    } else {
+                        return Stream.of(newRow);
+                    }
+                })
+                .forEach(newRows::add);
         mapList.clear();
         mapList.addAll(newRows);
     }
 
     public Map<String, Map<String, String>> createItemKeyToMap(List<Map<String, String>> mapList) {
         Map<String, Map<String, String>> itemKeyToMap = new LinkedHashMap<>();
-        mapList.stream().forEach((map) -> {
-            String itemKey = map.get("ITEM_KEY");
-            itemKeyToMap.put(itemKey, map);
-        });
+        mapList.stream()
+                .forEach((map) -> {
+                    String itemKey = map.get("ITEM_KEY");
+                    itemKeyToMap.put(itemKey, map);
+                });
         return itemKeyToMap;
     }
 }

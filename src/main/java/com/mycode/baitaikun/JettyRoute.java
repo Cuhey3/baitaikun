@@ -104,19 +104,21 @@ public class JettyRoute extends RouteBuilder {
                             if (arg.startsWith("検索項目:")) {
                                 String field = arg.replace("検索項目:", "");
                                 searchField.add(field);
-                                String sign = baitaikunBrowserSettingExcelSource.getListFields().stream()
-                                .filter((map) -> {
-                                    return map.get("exp").equals(field);
-                                }).map((map) -> {
-                                    return map.get("sign");
-                                }).findFirst().orElse(null);
+                                String sign
+                                = baitaikunBrowserSettingExcelSource.getListFields().stream()
+                                .filter((map)
+                                        -> map.get("exp").equals(field))
+                                .map((map)
+                                        -> map.get("sign"))
+                                .findFirst().orElse(null);
                                 if (sign == null) {
-                                    sign = baitaikunBrowserSettingExcelSource.getDetailFields().stream()
-                                    .filter((map) -> {
-                                        return map.get("exp").equals(field);
-                                    }).map((map) -> {
-                                        return map.get("sign");
-                                    }).findFirst().orElse(null);
+                                    sign
+                                    = baitaikunBrowserSettingExcelSource.getDetailFields().stream()
+                                    .filter((map)
+                                            -> map.get("exp").equals(field))
+                                    .map((map)
+                                            -> map.get("sign"))
+                                    .findFirst().orElse(null);
                                 }
                                 if (sign != null) {
                                     return "data." + sign;
@@ -127,7 +129,8 @@ public class JettyRoute extends RouteBuilder {
                                 return arg;
                             }
                     }
-                }).toArray(size -> new String[size]);
+                }).toArray(size
+                        -> new String[size]);
         Pattern p1 = Pattern.compile("(<< ?引数)(\\d+)( ?>>)");
         Matcher m;
         while ((m = p1.matcher(body)).find()) {

@@ -47,9 +47,8 @@ public class BaitaikunSettingsExcelSource extends ExcelSource {
         settings.clear();
         Utility utility = new Utility();
         IntStream.range(0, workbook.getNumberOfSheets())
-                .mapToObj((i) -> {
-                    return workbook.getSheetAt(i);
-                })
+                .mapToObj((i)
+                        -> workbook.getSheetAt(i))
                 .forEach((sheet) -> {
                     String sheetName = sheet.getSheetName();
                     List<String[]> sal = utility.sheetToStringArrayList(sheet);

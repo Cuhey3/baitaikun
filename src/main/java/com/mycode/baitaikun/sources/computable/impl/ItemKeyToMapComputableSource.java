@@ -55,9 +55,8 @@ public class ItemKeyToMapComputableSource extends ComputableSource {
             Map<String, String> exist
                     = itemKeyToMap.containsKey(itemKey) ? itemKeyToMap.get(itemKey) : new LinkedHashMap<>();
             map.entrySet().stream()
-                    .forEach((entry) -> {
-                        exist.put(settingName + "." + entry.getKey(), entry.getValue());
-                    });
+                    .forEach((entry)
+                            -> exist.put(settingName + "." + entry.getKey(), entry.getValue()));
             itemKeyToMap.put(itemKey, exist);
         });
     }
