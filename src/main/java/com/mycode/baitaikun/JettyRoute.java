@@ -39,6 +39,7 @@ public class JettyRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        onException(org.eclipse.jetty.io.EofException.class).handled(false);
         fromF("jetty:http://0.0.0.0:%s/query/", port)
                 .choice().when(header("method").isEqualTo("init")).to("direct:waitJson")
                 .otherwise().bean(this, "getTime()");
