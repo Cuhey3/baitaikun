@@ -1,13 +1,13 @@
 package com.mycode.baitaikun;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
@@ -39,13 +39,39 @@ public class Utility {
     public List<String[]> sheetToStringArrayList(Sheet sheet) {
         FormulaEvaluator evaluator = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
         DataFormatter formatter = new DataFormatter();
-        Iterable<Row> iterable = () -> sheet.rowIterator();
-        return StreamSupport.stream(iterable.spliterator(), false)
-                .map((row)
-                        -> rowToStringArray(row, formatter, evaluator))
-                .filter((array)
-                        -> array != null)
-                .collect(Collectors.toList());
+
+        Iterator<Row> rowIterator = sheet.rowIterator();
+        List<String[]> list = new ArrayList<>();
+        long start = System.currentTimeMillis();
+        int i = 0;
+        while (rowIterator.hasNext()) {
+            Row row = rowIterator.next();
+            String[] rowToStringArray = rowToStringArray(row, formatter, evaluator);
+            if (rowToStringArray != null) {
+                list.add(rowToStringArray);
+                i++;
+                if (i % 1000 == 0) {
+                    long time = System.currentTimeMillis() - start;
+                    if (i * 0.5 < time) {
+                        System.out.println("[MESSAGE] 読み取り処理に時間がかかっています。" + i + "行読み取りました。");
+                    }
+                }
+            }
+        }
+        return list;
+        /*       
+         Iterable<Row> iterable = () -> sheet.rowIterator();
+         long start = System.currentTimeMillis();
+         return StreamSupport.stream(iterable.spliterator(), false)
+         .map((row)
+         -> {
+
+         return rowToStringArray(row, formatter, evaluator);
+         })
+         .filter((array)
+         -> array != null)
+         .collect(Collectors.toList());
+         */
     }
 
     public String[] rowToStringArray(Row row, DataFormatter formatter, FormulaEvaluator evaluator) {
@@ -82,5 +108,11 @@ public class Utility {
                     .allMatch((s)
                             -> s != null && !s.isEmpty());
         }
+    }
+
+    public int getHashCodeWhenListContainsArray(List<String[]> list) {
+        return Arrays.hashCode(list.stream()
+                .map((array) -> Arrays.hashCode(array))
+                .toArray(size -> new Integer[size]));
     }
 }

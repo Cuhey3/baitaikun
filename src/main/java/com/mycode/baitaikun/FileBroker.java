@@ -1,5 +1,6 @@
 package com.mycode.baitaikun;
 
+import com.mycode.baitaikun.sources.computable.impl.CreateJsonComputableSource;
 import com.mycode.baitaikun.sources.excel.impl.BaitaikunSettingsExcelSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -46,6 +47,9 @@ public class FileBroker extends RouteBuilder {
                 .findFirst();
         if (slipUri.isPresent()) {
             headers.put("slipUri", slipUri.get());
+            if(factory.getBean(CreateJsonComputableSource.class).applicationIsReady && !name.startsWith("~$")){
+                System.out.println("[MESSAGE] ファイルの変更を検出しました。 " + name);
+            }
         }
     }
 

@@ -33,6 +33,7 @@ public class CreateJsonComputableSource extends ComputableSource {
     public String time;
     private final Pattern noDigit = Pattern.compile("[^\\d]");
     private final Pattern digit = Pattern.compile("^(\\d+)(\\d{4})$");
+    public boolean applicationIsReady = false;
 
     public CreateJsonComputableSource() throws Exception {
         setSourceKind("computable.createJson");
@@ -50,7 +51,8 @@ public class CreateJsonComputableSource extends ComputableSource {
                 .marshal().json(JsonLibrary.Jackson)
                 .bean(this, "setJson")
                 .bean(this, "updated()")
-                .process(new MessageProcessor("[MESSAGE] 準備が完了しました。"));
+                .process(new MessageProcessor("[MESSAGE] 準備が完了しました。\n[MESSAGE]"))
+                .process((exchange) -> applicationIsReady = true);
 
         from(initImplEndpoint)
                 .to("mock:initImpl");

@@ -45,29 +45,34 @@ public abstract class ExcelSource extends Source {
     }
 
     public Workbook openWorkbook(@Body InputStream inputStream, @Header("CamelFileName") String fileName) throws IOException {
+        Workbook workbook = null;
         try {
             if (fileName.endsWith(".xlsx")) {
-                return new XSSFWorkbook(inputStream);
+                workbook = new XSSFWorkbook(inputStream);
             } else if (fileName.endsWith(".xls")) {
-                return new HSSFWorkbook(inputStream);
-            } else {
-                return null;
+                workbook = new HSSFWorkbook(inputStream);
             }
+            return workbook;
         } catch (Throwable t) {
             return null;
+        } finally {
+            inputStream.close();
         }
     }
 
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
+        Utility utility = new Utility();
         stringArrayList.clear();
-        stringArrayList.addAll(new Utility().sheetToStringArrayList(workbook.getSheetAt(0)));
-        updateHash(header, stringArrayList.hashCode());
+        stringArrayList.addAll(utility.sheetToStringArrayList(workbook.getSheetAt(0)));
+        updateHash(header, utility.getHashCodeWhenListContainsArray(stringArrayList));
     }
 
     public void updateHash(Map header, int newHash) {
         if (oldHash != newHash) {
             header.put("change", true);
             oldHash = newHash;
+        }else{
+            System.out.println("[MESSAGE] 内容が同一のため、再計算は行いません。 " + this.getClass().getSimpleName());
         }
     }
 

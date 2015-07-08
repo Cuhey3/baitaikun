@@ -44,13 +44,17 @@ public class Broker extends RouteBuilder {
     }
 
     public ComputableSource getShoudUpdateOneSource() {
-        return computableSources.stream()
+        ComputableSource result = computableSources.stream()
                 .filter((source)
-                        -> !source.isUpToDate() && source.isReady())
+                        -> !source.isUpToDate() && source.isReady() && !source.isComputingNow())
                 .filter((source)
                         -> source.getSuperiorSources().stream()
                         .allMatch((superiorSource)
                                 -> superiorSource.isUpToDate() && superiorSource.isReady()))
                 .findFirst().orElse(null);
+        if (result != null) {
+            result.setComputingNow(true);
+        }
+        return result;
     }
 }
