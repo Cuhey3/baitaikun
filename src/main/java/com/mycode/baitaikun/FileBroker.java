@@ -33,6 +33,7 @@ public class FileBroker extends RouteBuilder {
                 .routeId("fileBrokerRoute").autoStartup(false)
                 .bean(this, "checkFileName")
                 .routingSlip().simple("header.slipUri")
+                .setBody().constant(null)
                 .to("direct:broker.poll");
     }
 
@@ -45,9 +46,9 @@ public class FileBroker extends RouteBuilder {
                 .map((entry)
                         -> entry.getValue())
                 .findFirst();
-        if (slipUri.isPresent()) {
+        if (slipUri.isPresent() && !name.startsWith("~$")) {
             headers.put("slipUri", slipUri.get());
-            if(factory.getBean(CreateJsonComputableSource.class).applicationIsReady && !name.startsWith("~$")){
+            if(factory.getBean(CreateJsonComputableSource.class).applicationIsReady){
                 System.out.println("[MESSAGE] ファイルの変更を検出しました。 " + name);
             }
         }

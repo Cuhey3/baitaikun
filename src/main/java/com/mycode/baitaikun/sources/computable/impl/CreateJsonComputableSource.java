@@ -51,8 +51,11 @@ public class CreateJsonComputableSource extends ComputableSource {
                 .marshal().json(JsonLibrary.Jackson)
                 .bean(this, "setJson")
                 .bean(this, "updated()")
-                .process(new MessageProcessor("[MESSAGE] 準備が完了しました。\n[MESSAGE]"))
-                .process((exchange) -> applicationIsReady = true);
+                .process((ex) -> System.out.println("[MESSAGE] 準備が完了しました。\n[MESSAGE]"))
+                .process((exchange) -> {
+                    System.gc();
+                    applicationIsReady = true;
+                });
 
         from(initImplEndpoint)
                 .to("mock:initImpl");
@@ -139,20 +142,6 @@ public class CreateJsonComputableSource extends ComputableSource {
                 }
             }
             return 0;
-        }
-    }
-
-    private class MessageProcessor implements Processor {
-
-        String message;
-
-        public MessageProcessor(final String message) {
-            this.message = message;
-        }
-
-        @Override
-        public void process(Exchange exchange) throws Exception {
-            System.out.println(message);
         }
     }
 }

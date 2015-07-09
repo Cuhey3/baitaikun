@@ -2,6 +2,7 @@ package com.mycode.baitaikun.sources.excel;
 
 import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.Source;
+import com.mycode.baitaikun.sources.computable.impl.CreateJsonComputableSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -37,14 +38,24 @@ public abstract class ExcelSource extends Source {
     public void configure() {
         onException(java.io.FileNotFoundException.class).handled(true);
         from(startEndpoint)
+                .process((ex) -> {
+                    if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
+                        System.out.print("[MESSAGE] データファイルを開いています...");
+                    }
+                })
                 .bean(this, "openWorkbook")
                 .filter().simple("${body} is 'org.apache.poi.ss.usermodel.Workbook'")
-                .bean(this, "loadSheet")
+                .process((ex) -> {
+                    if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
+                        System.out.println(" データを読み込んでいます...");
+                    }
+                }).bean(this, "loadSheet")
                 .filter().simple("${header.change}")
                 .bean(this, "updated");
     }
 
     public Workbook openWorkbook(@Body InputStream inputStream, @Header("CamelFileName") String fileName) throws IOException {
+        System.gc();
         Workbook workbook = null;
         try {
             if (fileName.endsWith(".xlsx")) {
@@ -61,18 +72,21 @@ public abstract class ExcelSource extends Source {
     }
 
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
+        System.gc();
         Utility utility = new Utility();
         stringArrayList.clear();
         stringArrayList.addAll(utility.sheetToStringArrayList(workbook.getSheetAt(0)));
         updateHash(header, utility.getHashCodeWhenListContainsArray(stringArrayList));
+        System.gc();
     }
 
     public void updateHash(Map header, int newHash) {
         if (oldHash != newHash) {
             header.put("change", true);
             oldHash = newHash;
-        }else{
-            System.out.println("[MESSAGE] 内容が同一のため、再計算は行いません。 " + this.getClass().getSimpleName());
+        } else {
+            System.out.println("[MESSAGE] 内容が同一のため、再計算は行いません。" + this.getClass().getSimpleName() + "\n[MESSAGE]");
+            System.gc();
         }
     }
 
