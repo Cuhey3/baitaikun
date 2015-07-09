@@ -22,7 +22,6 @@ public class BaitaikunSettingsExcelSource extends ExcelSource {
 
     @Getter
     Map<String, Map<String, String>> settings = Collections.synchronizedMap(new LinkedHashMap<>());
-
     public BaitaikunSettingsExcelSource() throws IOException, Exception {
         setSourceKind("excel.settings");
         setSourceName("媒体くん詳細設定のファイル名");

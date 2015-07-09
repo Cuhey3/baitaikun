@@ -59,19 +59,6 @@ public class Utility {
             }
         }
         return list;
-        /*       
-         Iterable<Row> iterable = () -> sheet.rowIterator();
-         long start = System.currentTimeMillis();
-         return StreamSupport.stream(iterable.spliterator(), false)
-         .map((row)
-         -> {
-
-         return rowToStringArray(row, formatter, evaluator);
-         })
-         .filter((array)
-         -> array != null)
-         .collect(Collectors.toList());
-         */
     }
 
     public String[] rowToStringArray(Row row, DataFormatter formatter, FormulaEvaluator evaluator) {
@@ -82,6 +69,7 @@ public class Utility {
                     .toArray((s)
                             -> new String[s]);
         } catch (Throwable t) {
+            t.printStackTrace();
             return null;
         }
     }

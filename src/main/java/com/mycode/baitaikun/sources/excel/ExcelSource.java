@@ -13,9 +13,8 @@ import lombok.Setter;
 import org.apache.camel.Body;
 import org.apache.camel.Header;
 import org.apache.camel.Headers;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 public abstract class ExcelSource extends Source {
 
@@ -55,29 +54,24 @@ public abstract class ExcelSource extends Source {
     }
 
     public Workbook openWorkbook(@Body InputStream inputStream, @Header("CamelFileName") String fileName) throws IOException {
-        System.gc();
         Workbook workbook = null;
         try {
-            if (fileName.endsWith(".xlsx")) {
-                workbook = new XSSFWorkbook(inputStream);
-            } else if (fileName.endsWith(".xls")) {
-                workbook = new HSSFWorkbook(inputStream);
-            }
+            workbook = WorkbookFactory.create(inputStream);
             return workbook;
         } catch (Throwable t) {
             return null;
         } finally {
-            inputStream.close();
+            if (inputStream != null) {
+                inputStream.close();
+            }
         }
     }
 
     public void loadSheet(@Body Workbook workbook, @Headers Map header) {
-        System.gc();
         Utility utility = new Utility();
         stringArrayList.clear();
         stringArrayList.addAll(utility.sheetToStringArrayList(workbook.getSheetAt(0)));
         updateHash(header, utility.getHashCodeWhenListContainsArray(stringArrayList));
-        System.gc();
     }
 
     public void updateHash(Map header, int newHash) {
@@ -86,7 +80,6 @@ public abstract class ExcelSource extends Source {
             oldHash = newHash;
         } else {
             System.out.println("[MESSAGE] 内容が同一のため、再計算は行いません。" + this.getClass().getSimpleName() + "\n[MESSAGE]");
-            System.gc();
         }
     }
 
