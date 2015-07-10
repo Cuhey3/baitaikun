@@ -58,34 +58,35 @@ public class BaitaiExcelSource extends ExcelSource {
     }
 
     public void customLoad(@Body InputStream inputStream, @Headers Map header) throws IOException {
-        Utility utility = new Utility();
-        StreamingReader reader = StreamingReader.builder()
-                .rowCacheSize(100)
-                .bufferSize(4096)
-                .sheetIndex(0)
-                .read(inputStream);
-        stringArrayList.clear();
-        if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
-            System.out.println(" データを読み込んでいます...");
-        }
-        int max = 0;
-        for (Row row : reader) {
-            max = Math.max(max, ((StreamingRow) row).getCellMap().size());
-            String[] toArray = IntStream.range(0, max)
-                    .mapToObj((i) -> {
-                        Cell cell = row.getCell(i);
-                        if (cell == null) {
-                            return "";
-                        } else {
-                            return cell.getStringCellValue().replaceAll("\r\n|\n|\r", " ");
-                        }
-                    })
-                    .toArray((size) -> new String[size]);
-            stringArrayList.add(toArray);
-        }
-        updateHash(header, utility.getHashCodeWhenListContainsArray(stringArrayList));
-        if (inputStream != null) {
-            inputStream.close();
+        try {
+            StreamingReader reader = StreamingReader.builder()
+                    .rowCacheSize(100)
+                    .bufferSize(4096)
+                    .sheetIndex(0)
+                    .read(inputStream);
+            stringArrayList.clear();
+            if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
+                System.out.println(" データを読み込んでいます...");
+            }
+            int max = 0;
+            for (Row row : reader) {
+                max = Math.max(max, ((StreamingRow) row).getCellMap().size());
+                stringArrayList.add(IntStream.range(0, max)
+                        .mapToObj((i) -> {
+                            Cell cell = row.getCell(i);
+                            if (cell == null) {
+                                return "";
+                            } else {
+                                return cell.getStringCellValue().replaceAll("\r\n|\n|\r", " ");
+                            }
+                        })
+                        .toArray((size) -> new String[size]));
+            }
+            updateHash(header, new Utility().getHashCodeWhenListContainsArray(stringArrayList));
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
         }
     }
 }

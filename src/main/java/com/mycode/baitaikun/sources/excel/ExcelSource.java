@@ -54,9 +54,8 @@ public abstract class ExcelSource extends Source {
     }
 
     public Workbook openWorkbook(@Body InputStream inputStream, @Header("CamelFileName") String fileName) throws IOException {
-        Workbook workbook = null;
         try {
-            workbook = WorkbookFactory.create(inputStream);
+            Workbook workbook = WorkbookFactory.create(inputStream);
             return workbook;
         } catch (Throwable t) {
             return null;
