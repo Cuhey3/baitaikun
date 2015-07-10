@@ -1,6 +1,7 @@
 package com.mycode.baitaikun.sources.excel.impl;
 
 import com.monitorjbl.xlsx.StreamingReader;
+import com.monitorjbl.xlsx.impl.StreamingRow;
 import com.mycode.baitaikun.Settings;
 import com.mycode.baitaikun.Utility;
 import com.mycode.baitaikun.sources.computable.impl.CreateJsonComputableSource;
@@ -8,6 +9,7 @@ import com.mycode.baitaikun.sources.excel.ExcelSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
@@ -66,10 +68,18 @@ public class BaitaiExcelSource extends ExcelSource {
         if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
             System.out.println(" データを読み込んでいます...");
         }
+        int max = 0;
         for (Row row : reader) {
-            Iterable<Cell> iterable = () -> row.cellIterator();
-            String[] toArray = StreamSupport.stream(iterable.spliterator(), false)
-                    .map((cell) -> cell.getStringCellValue().replaceAll("\r\n|\n|\r", " "))
+            max = Math.max(max, ((StreamingRow) row).getCellMap().size());
+            String[] toArray = IntStream.range(0, max)
+                    .mapToObj((i) -> {
+                        Cell cell = row.getCell(i);
+                        if (cell == null) {
+                            return "";
+                        } else {
+                            return cell.getStringCellValue().replaceAll("\r\n|\n|\r", " ");
+                        }
+                    })
                     .toArray((size) -> new String[size]);
             stringArrayList.add(toArray);
         }
