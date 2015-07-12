@@ -5,7 +5,6 @@ import static java.lang.String.*;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Getter;
-import lombok.Setter;
 
 public abstract class ComputableSource extends Source {
 
@@ -16,9 +15,6 @@ public abstract class ComputableSource extends Source {
     private final Set<Class> superiorSourceClasses = new HashSet<>();
     @Getter
     private final Set<Source> superiorSources = new HashSet<>();
-    @Getter
-    @Setter
-    public boolean computingNow = false;
 
     @Override
     public void buildEndpoint() throws Exception {
@@ -31,13 +27,12 @@ public abstract class ComputableSource extends Source {
     public void configure() throws Exception {
         from(initEndpoint)
                 .bean(this, "injectSuperiorSources()")
-                .to(initImplEndpoint)
                 .bean(this, "ready()");
 
         from(computeEndpoint)
                 .to(computeImplEndpoint)
-                .process((exchange) -> computingNow = false)
-                .to("direct:broker.poll");
+                .process((ex) -> ready = true)
+                .to("direct:broker.notate");
     }
 
     public void injectSuperiorSources() {

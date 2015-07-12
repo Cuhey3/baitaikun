@@ -49,16 +49,20 @@ public class CreateJsonComputableSource extends ComputableSource {
                 .marshal().json(JsonLibrary.Jackson)
                 .bean(this, "setJson")
                 .bean(this, "updated()")
-                .process((ex) -> System.out.println("[MESSAGE] 準備が完了しました。\n[MESSAGE]"))
-                .process((exchange) -> {
+                .process((ex) -> {
+                    if (applicationIsReady) {
+                        System.out.println("[MESSAGE] 更新が完了しました。\n[MESSAGE]");
+                    } else {
+                        System.out.println("[MESSAGE] 全ての準備が完了しました。\n[MESSAGE]");
+                    }
+                })
+                .process((ex) -> {
                     applicationIsReady = true;
                 });
-
-        from(initImplEndpoint)
-                .to("mock:initImpl");
     }
 
     @Override
+
     public Object compute() {
         List<Map<String, String>> mapList = joinAndFunctionComputableSource.getMapList();
         mapList.sort(new MyComparator(baitaikunBrowserSettingExcelSource.getSortSetting()));

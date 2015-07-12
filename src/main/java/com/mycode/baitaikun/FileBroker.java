@@ -4,7 +4,6 @@ import com.mycode.baitaikun.sources.computable.impl.CreateJsonComputableSource;
 import com.mycode.baitaikun.sources.excel.impl.BaitaikunSettingsExcelSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -19,37 +18,39 @@ import org.springframework.stereotype.Component;
 public class FileBroker extends RouteBuilder {
 
     private final Map<Pattern, String> patternToSlipUri = new LinkedHashMap<>();
+    private final String fileEndpointTemplate = "file:%s?noop=true&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&%s=%s&recursive=true";
     @Autowired
     BeanFactory factory;
 
     @Override
     public void configure() throws Exception {
-        fromF("file:%s?noop=true&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&include=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), Settings.get("媒体くん詳細設定のファイル名"))
+        fromF(fileEndpointTemplate, Settings.get("媒体くん用フォルダの場所"), "include", Settings.get("媒体くん詳細設定のファイル名"))
                 .routeId("settingRoute").autoStartup(false)
                 .to("direct:excel.settings?block=true")
-                .to("direct:broker.poll");
+                .to("direct:broker.notate");
 
-        fromF("file:%s?noop=true&idempotent=true&idempotentKey=${file:name}-${file:modified}&readLock=none&exclude=%s&recursive=true", Settings.get("媒体くん用フォルダの場所"), Settings.get("媒体くん詳細設定のファイル名"))
+        fromF(fileEndpointTemplate, Settings.get("媒体くん用フォルダの場所"), "exclude", Settings.get("媒体くん詳細設定のファイル名"))
                 .routeId("fileBrokerRoute").autoStartup(false)
-                .bean(this, "checkFileName")
+                .bean(this, "fileNameToSlipUri")
                 .routingSlip().simple("header.slipUri")
-                .setBody().constant(null)
-                .to("direct:broker.poll");
+                .to("direct:broker.notate");
     }
 
-    public void checkFileName(@Headers Map headers) {
+    public void fileNameToSlipUri(@Headers Map headers) {
         String name = (String) headers.get(Exchange.FILE_NAME_ONLY);
-        Optional<String> slipUri
-                = patternToSlipUri.entrySet().stream()
-                .filter((entry)
-                        -> entry.getKey().matcher(name).find())
-                .map((entry)
-                        -> entry.getValue())
-                .findFirst();
-        if (slipUri.isPresent() && !name.startsWith("~$")) {
-            headers.put("slipUri", slipUri.get());
-            if(factory.getBean(CreateJsonComputableSource.class).applicationIsReady){
-                System.out.println("[MESSAGE] ファイルの変更を検出しました。 " + name);
+        if (!name.startsWith("~$")) {
+            String slipUri
+                    = patternToSlipUri.entrySet().stream()
+                    .filter((entry)
+                            -> entry.getKey().matcher(name).find())
+                    .map((entry)
+                            -> entry.getValue())
+                    .findFirst().orElse(null);
+            if (slipUri != null) {
+                headers.put("slipUri", slipUri);
+                if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
+                    System.out.println("[MESSAGE] ファイルの変更を検出しました。 " + name);
+                }
             }
         }
     }

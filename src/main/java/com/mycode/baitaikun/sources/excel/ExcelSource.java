@@ -39,7 +39,7 @@ public abstract class ExcelSource extends Source {
         from(startEndpoint)
                 .process((ex) -> {
                     if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
-                        System.out.print("[MESSAGE] データファイルを開いています...");
+                        System.out.print("[MESSAGE] ファイルを開いています...");
                     }
                 })
                 .bean(this, "openWorkbook")

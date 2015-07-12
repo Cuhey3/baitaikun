@@ -52,9 +52,6 @@ public class NoukiComputableSource extends ComputableSource {
         from(computeImplEndpoint)
                 .bean(this, "compute()")
                 .bean(this, "updated()");
-
-        from(initImplEndpoint)
-                .to("mock:initImpl");
     }
 
     @Override

@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
 import org.apache.camel.Headers;
@@ -34,7 +33,7 @@ public class BaitaiExcelSource extends ExcelSource {
         from(startEndpoint)
                 .process((ex) -> {
                     if (factory.getBean(CreateJsonComputableSource.class).applicationIsReady) {
-                        System.out.print("[MESSAGE] データファイルを開いています...");
+                        System.out.print("[MESSAGE] ファイルを開いています...");
                     }
                 })
                 .choice().when((Exchange exchange)

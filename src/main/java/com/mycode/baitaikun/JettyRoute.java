@@ -48,9 +48,9 @@ public class JettyRoute extends RouteBuilder {
                 .bean(this, "saveHtml").to("direct:waitSetting");
 
         from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
-                .bean(this, "createHtml").toF("file:%s/../", Settings.get("媒体くん用フォルダの場所"))
-                //.bean(this, "createHtml").to("file:./")
-                .to("direct:broker.poll")
+                .bean(this, "createHtml")
+                //.toF("file:%s/../", Settings.get("媒体くん用フォルダの場所"))
+                .to("direct:broker.notate")
                 .otherwise().delay(3000).to("direct:waitSetting");
 
         fromF("jetty:http://0.0.0.0:%s/", port)
@@ -146,7 +146,7 @@ public class JettyRoute extends RouteBuilder {
         header.put(Exchange.FILE_NAME, "媒体くんX.html");
         if (completeHtml == null || !completeHtml.equals(body)) {
             completeHtml = body;
-            System.out.println("[MESSAGE] 媒体くんXのページを更新しました URL: http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
+            System.out.println("[MESSAGE] 媒体くんXの検索画面を更新しました。\n[MESSAGE] URLでもアクセスできます。 http://" + InetAddress.getLocalHost().getHostAddress() + ":" + port + "/");
         }
         return body;
     }

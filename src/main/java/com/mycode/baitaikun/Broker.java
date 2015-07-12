@@ -22,10 +22,9 @@ public class Broker extends RouteBuilder {
         from(initEndpoint)
                 .bean(this, "setComputableSources()");
 
-        from("direct:broker.poll").routeId("broker.poll").autoStartup(false)
-                .setBody().constant(null)
-                .bean(this, "getShoudUpdateOneSource()")
-                .filter().simple("${body} != null")
+        from("direct:broker.notate").routeId("broker.notate").autoStartup(false)
+                .bean(this, "getShoudUpdateOneSource")
+                .filter().simple("${body} is 'com.mycode.baitaikun.sources.computable.ComputableSource'")
                 .routingSlip().simple("body.computeEndpoint");
     }
 
@@ -35,9 +34,6 @@ public class Broker extends RouteBuilder {
                 .map((beanName)
                         -> (ComputableSource) factory.getBean(beanName))
                 .forEach(computableSources::add);
-        if (this.getContext().getRouteStatus("broker.poll").isStopped()) {
-            this.getContext().startRoute("broker.poll");
-        }
         if (this.getContext().getRouteStatus("settingRoute").isStopped()) {
             this.getContext().startRoute("settingRoute");
         }
@@ -46,14 +42,14 @@ public class Broker extends RouteBuilder {
     public ComputableSource getShoudUpdateOneSource() {
         ComputableSource result = computableSources.stream()
                 .filter((source)
-                        -> !source.isUpToDate() && source.isReady() && !source.isComputingNow())
+                        -> source.isReady() && !source.isUpToDate())
                 .filter((source)
                         -> source.getSuperiorSources().stream()
                         .allMatch((superiorSource)
                                 -> superiorSource.isUpToDate() && superiorSource.isReady()))
                 .findFirst().orElse(null);
         if (result != null) {
-            result.setComputingNow(true);
+            result.setReady(false);
         }
         return result;
     }
