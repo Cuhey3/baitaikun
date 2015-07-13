@@ -6,7 +6,9 @@ import com.mycode.baitaikun.sources.excel.impl.BaitaiExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.BaitaikunSettingsExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.ItemKeyReplaceExcelSource;
 import com.mycode.baitaikun.sources.excel.impl.RecordAppenderExcelSource;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,8 @@ public class BaitaiComputableSource extends ComputableSource {
     @Autowired
     ItemKeyToMapComputableSource itemKeyToMap_c;
     private final Pattern datePattern = Pattern.compile("(\\d{4}/)(\\d{1,2}/)(\\d{1,2})");
+    private final Pattern serialDatePattern = Pattern.compile("^[3456789]\\d{4}$");
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
 
     public BaitaiComputableSource() throws Exception {
         setSourceKind("computable.baitai");
@@ -118,7 +122,14 @@ public class BaitaiComputableSource extends ComputableSource {
                             }
                             map.put(dateField, m.group(1) + month + day);
                         } else {
-                            map.put(dateField, errorValue + date);
+                            if (serialDatePattern.matcher(date).find()) {
+                                Calendar cal = Calendar.getInstance();
+                                cal.set(1900, 0, -1);
+                                cal.add(Calendar.HOUR, 24 * Integer.parseInt(date));
+                                map.put(dateField, sdf.format(cal.getTime()));
+                            } else {
+                                map.put(dateField, errorValue + date);
+                            }
                         }
                     }
                 });

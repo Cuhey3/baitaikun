@@ -56,7 +56,7 @@ public class JettyRoute extends RouteBuilder {
         fromF("jetty:http://0.0.0.0:%s/", port)
                 .choice().when().method(this, "settingIsReady()")
                 .bean(this, "getCompleteHtml()")
-                .otherwise().setBody().simple("now loading...");
+                .otherwise().setBody().simple("<html><head><script>setTimeout(function(){location.reload(true);},3000);</script></head><body>now loading...</body></html>");
 
         from("direct:waitJson").choice().when().method(this, "jsonIsReady()")
                 .bean(this, "getJson()")
