@@ -49,7 +49,7 @@ public class JettyRoute extends RouteBuilder {
 
         from("direct:waitSetting").choice().when().method(this, "settingIsReady()")
                 .bean(this, "createHtml")
-                //.toF("file:%s/../", Settings.get("媒体くん用フォルダの場所"))
+                .toF("file:%s/../", Settings.get("媒体くん用フォルダの場所"))
                 .to("direct:broker.notate")
                 .otherwise().delay(3000).to("direct:waitSetting");
 
